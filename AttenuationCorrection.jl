@@ -168,11 +168,12 @@ e3s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e3s]
 # User will have to run(`$(PyCall.python) -m pip install "trimesh[easy]"`) in their Julia REPL. Write in README or PyProject.toml.
 
 
+# Largest number of MC sampling points we want to use.
 const n_mc_max = 1000
 mesh = trimesh.load_mesh("crystal.stl")
 mc_coords = Float32.(trimesh.sample.volume_mesh(mesh, n_mc_max))
+# Actual number of MC sampling points we use, n_mc ≤ n_mc_max.
 const n_mc = length(mc_coords[:, 1])
-
 
 
 # Setting the (estimated) parameters of the sample.
@@ -231,7 +232,7 @@ indices (n_faces-vector of 3-vectors with integer elements): Indices describing 
 
 Returns
 -------
-path_length (float): Distance between origin and the surface the neutron path intersects, in units of the .stl file.
+path_length (float): Distance between origin and the surface the neutron path intersects, in units of the .stl file. None is outputted if there is no intersection.
 """
 function len_calc(
     e2s :: Vector{SVector{3, Float32}}, 
@@ -242,7 +243,7 @@ function len_calc(
     origin :: Vector{Float32}, 
     vertices :: Vector{Point{3, Float32}}, 
     indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}
-    ) :: Float32
+    )
     # Iterating through all faces.
     @inbounds for j in 1:n_faces
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
@@ -261,11 +262,14 @@ function len_calc(
                 λ = (1 / det) * dot(q, e3s[j])
                 # Determining the path length based on λ and the magnitude of the inputted direction vector, d.
                 path_length = abs(λ) * norm(d)
-                return path_length
+                return Float32(path_length)
             end
         end
     end
-    error("The neutron does not intersect a face. Is the origin within the sample?")
+    # Returning nothing if no path is intersected.
+    # Assuming the origin is within the sample, then this only occurs due to floating point precision errors.
+    # ie u+v = 1.00000001 > 1.
+    return nothing
 end
 
 
@@ -363,14 +367,26 @@ function atten_calc(
     axsf = axs_calc(en_f)
     # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
     p_f, det_f = pdet_calc!(kf, e2s, e3s, p_f, det_f)
+    # Talling the number of MC sample points ignored due to no path length calculated.
+    ignored_pts = 0
     atten = 0
     for i in 1:n_mc
         # Calculating the path length, len_f, at this sample point.
         len_f = len_calc(e2s, e3s, kf, p_f, det_f, mc_coords[i, :], vertices, indices)
-        # Adding the attenuation factor contribution from this sample point to A.
-        atten += (1 / n_mc) * exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
+        if typeof(len_f) != Float32
+            ignored_pts += 1
+        else
+            # Adding the attenuation factor contribution from this sample point to A.
+            atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
+        end
     end
-    return atten
+    # Dividing by the total number of contributing sample points.
+    if n_mc == ignored_pts
+        error("The path length could not be calculated for any sample point. Are they all within the sample?")
+    else
+        atten = atten / (n_mc - ignored_pts)
+        return atten
+    end
 end
 
 
@@ -398,7 +414,7 @@ len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, 
 
 Returns
 -------
-A_grid (n_bins x n_detectors matrix of floats): Attenuation factor grid.
+atten_grid (n_bins x n_detectors matrix of floats): Attenuation factor grid.
 """
 function a_grid_calc(
     data :: Matrix{Float32}, 
@@ -414,7 +430,7 @@ function a_grid_calc(
     mc_coords :: Matrix{Float32}, 
     len_i :: Vector{Float32}
     ) :: Matrix{Float32}
-    A_grid = zeros(n_bins, n_detectors)
+    atten_grid = zeros(n_bins, n_detectors)
     # Determining the locations in which the signal is either NaN or 0 as we don't want to calculate atten there.
     idx = findall(.~((data .== 0) .| (isnan.(data))))
     # Pre-allocating the vectors needed for the MT algorithm.
@@ -423,18 +439,18 @@ function a_grid_calc(
     # Skipping checks on array lengths using @inbounds.
     @inbounds for I in idx
         kf = [kx[I], ky[I], kz[I]]
-        A_grid[I] = atten_calc(ki, SVector{3}(kf), ef_bins[I[1]], vertices, indices, e2s, e3s, mc_coords, len_i, p_f, det_f)
+        atten_grid[I] = atten_calc(ki, SVector{3}(kf), ef_bins[I[1]], vertices, indices, e2s, e3s, mc_coords, len_i, p_f, det_f)
     end
-    return A_grid
+    return atten_grid
 end
 
 
 # Testing the time taken to output this grid of attenuation factors.
 
 
-A_grid = a_grid_calc(data, kx, ky, kz, ki, ef_bins, vertices, indices, e2s, e3s, mc_coords, len_i)
+atten_grid = a_grid_calc(data, kx, ky, kz, ki, ef_bins, vertices, indices, e2s, e3s, mc_coords, len_i)
 # Testing the same (known to be non-zero) datapoint.
-display(A_grid[160,6])
+display(atten_grid[160, 6])
 
 
 # Converting the grid of data and attenuation factors to sparse arrays.
@@ -445,5 +461,20 @@ data_copy = copy(data)
 data_copy .= ifelse.(isnan.(data_copy), 0, data)
 s_data = sparse(data_copy)
 # Converting the attenuation factors to a sparse matrix.
-s_atten = sparse(A_grid)
-display(s_atten)
+s_atten = sparse(atten_grid)
+# Testing the same (known to be non-zero) datapoint.
+display(s_atten[160, 6])
+
+
+# Calculating the corrected data/signal by dividing each measured signal by the corresponding attenuation factor.
+
+
+c_data = zeros(n_bins, n_detectors)
+idx = findnz(s_data)
+for I in idx
+    c_data[I[1], I[2]] = I[3] / s_atten[I[1], I[2]]
+end
+# Converting this corrected data into a sparse matrix.
+s_c_data = sparse(c_data)
+# Testing the same (known to be non-zero) datapoint.
+display(s_c_data[160,6])
