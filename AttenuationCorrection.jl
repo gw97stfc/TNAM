@@ -169,7 +169,7 @@ e3s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e3s]
 
 
 # Largest number of MC sampling points we want to use.
-const n_mc_max = 1000
+const n_mc_max = 2
 mesh = trimesh.load_mesh("crystal.stl")
 mc_coords = Float32.(trimesh.sample.volume_mesh(mesh, n_mc_max))
 # Actual number of MC sampling points we use, n_mc ≤ n_mc_max.
@@ -398,7 +398,7 @@ Calculates the attenuation factor for every non-zero, non-NaN, signal and stores
 
 Parameters
 ----------
-data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
 kx (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in x direction, in Angstrom^-1.
 ky (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in y direction, in Angstrom^-1.
 kz (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in z direction, in Angstrom^-1.
@@ -414,10 +414,10 @@ len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, 
 
 Returns
 -------
-atten_grid (n_bins x n_detectors matrix of floats): Attenuation factor grid.
+atten_grid (n_bins x n_detectors matrix with float elements): Attenuation factor grid.
 """
 function a_grid_calc(
-    data :: Matrix{Float32}, 
+    s_data :: SparseMatrixCSC{Float32, Int64}, 
     kx :: AbstractMatrix{Float32}, 
     ky :: AbstractMatrix{Float32}, 
     kz :: AbstractMatrix{Float32}, 
@@ -430,27 +430,19 @@ function a_grid_calc(
     mc_coords :: Matrix{Float32}, 
     len_i :: Vector{Float32}
     ) :: Matrix{Float32}
-    atten_grid = zeros(n_bins, n_detectors)
+    atten_grid = zeros(Float32, n_bins, n_detectors)
     # Determining the locations in which the signal is either NaN or 0 as we don't want to calculate atten there.
-    idx = findall(.~((data .== 0) .| (isnan.(data))))
+    idx = findnz(s_data)
     # Pre-allocating the vectors needed for the MT algorithm.
     p_f = Vector{SVector{3, Float32}}(undef, n_faces)
     det_f = Vector{Float32}(undef, n_faces)
     # Skipping checks on array lengths using @inbounds.
-    @inbounds for I in idx
-        kf = [kx[I], ky[I], kz[I]]
-        atten_grid[I] = atten_calc(ki, SVector{3}(kf), ef_bins[I[1]], vertices, indices, e2s, e3s, mc_coords, len_i, p_f, det_f)
+    @inbounds for (i, j) in zip(idx[1], idx[2])
+        kf = SVector(kx[i, j], ky[i, j], kz[i, j])
+        atten_grid[i, j] = atten_calc(ki, kf, ef_bins[i], vertices, indices, e2s, e3s, mc_coords, len_i, p_f, det_f)
     end
     return atten_grid
 end
-
-
-# Testing the time taken to output this grid of attenuation factors.
-
-
-atten_grid = a_grid_calc(data, kx, ky, kz, ki, ef_bins, vertices, indices, e2s, e3s, mc_coords, len_i)
-# Testing the same (known to be non-zero) datapoint.
-display(atten_grid[160, 6])
 
 
 # Converting the grid of data and attenuation factors to sparse arrays.
@@ -460,21 +452,51 @@ display(atten_grid[160, 6])
 data_copy = copy(data)
 data_copy .= ifelse.(isnan.(data_copy), 0, data)
 s_data = sparse(data_copy)
+
+
+# Testing the time taken to output this grid of attenuation factors.
+
+
+atten_grid = a_grid_calc(s_data, kx, ky, kz, ki, ef_bins, vertices, indices, e2s, e3s, mc_coords, len_i)
 # Converting the attenuation factors to a sparse matrix.
 s_atten = sparse(atten_grid)
 # Testing the same (known to be non-zero) datapoint.
 display(s_atten[160, 6])
 
 
+# Defining the function to correct the data/signal for absorption.
+
+
+"""
+Corrects the measured data by taking neutron absorption into consideration. The measured signal is divided by the corresponding attenuation factor.
+
+Parameters
+----------
+s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+s_atten (n_bins x n_detectors sparse matrix with float elements): Attenuation factor for different detectors and energy bins.
+
+Returns
+-------
+c_data (n_bins x n_detectors matrix with float elements): Corrected neutron signal at different detectors for different energy bins.
+"""
+function data_corr(s_data :: SparseMatrixCSC{Float32, Int64}, s_atten :: SparseMatrixCSC{Float32, Int64}) :: Matrix{Float32}
+    c_data = zeros(Float32, n_bins, n_detectors)
+    # Finding the indices (the energy bin and detector) at which we have a signal.
+    idx = findnz(s_data)
+    # Correcting each signal by dividing by the corresponding attenuation factor.
+    for (i, j, k) in zip(idx[1], idx[2], idx[3])
+        c_data[i, j] = k / s_atten[i, j]
+    end
+    return c_data
+end
+
+
 # Calculating the corrected data/signal by dividing each measured signal by the corresponding attenuation factor.
 
 
-c_data = zeros(n_bins, n_detectors)
-idx = findnz(s_data)
-for I in idx
-    c_data[I[1], I[2]] = I[3] / s_atten[I[1], I[2]]
-end
+c_data = data_corr(s_data, s_atten)
 # Converting this corrected data into a sparse matrix.
 s_c_data = sparse(c_data)
 # Testing the same (known to be non-zero) datapoint.
+display(s_data[160,6])
 display(s_c_data[160,6])
