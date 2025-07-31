@@ -1,0 +1,1146 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 13.2' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[     41088,       1138]
+NotebookOptionsPosition[     38240,       1083]
+NotebookOutlinePosition[     38647,       1099]
+CellTagsIndexPosition[     38604,       1096]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", " ", 
+   RowBox[{"Create", " ", "a", " ", "Single", " ", "Icosphere"}], "*)"}], 
+  "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"n", "=", "40"}], ";"}], " ", 
+   RowBox[{"(*", 
+    RowBox[{
+     RowBox[{
+     "Vary", " ", "the", " ", "number", " ", "of", " ", "faces", " ", "in", 
+      " ", "the", " ", "icosphere"}], ",", " ", 
+     RowBox[{
+      RowBox[{"note", " ", "n", " ", "does", " ", "not"}], " ", "=", " ", 
+      RowBox[{"number", " ", "of", " ", 
+       RowBox[{"faces", "."}]}]}]}], "*)"}], "\[IndentingNewLine]", "\n", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphereMesh", "=", 
+     RowBox[{"DiscretizeGraphics", "[", 
+      RowBox[{
+       RowBox[{"Sphere", "[", "]"}], ",", 
+       RowBox[{"MaxCellMeasure", "->", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Area\>\"", "->", 
+          RowBox[{"4", " ", 
+           RowBox[{"Pi", "/", "n"}]}]}], "}"}]}]}], "  ", "]"}]}], ";"}], 
+   "\n", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"faceCount", "=", 
+     RowBox[{"MeshCellCount", "[", 
+      RowBox[{"sphereMesh", ",", "2"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"Print", "[", 
+     RowBox[{"\"\<Number of faces: \>\"", ",", "faceCount"}], "]"}], ";"}], 
+   "\[IndentingNewLine]", "\n", "\[IndentingNewLine]", 
+   RowBox[{"Export", "[", 
+    RowBox[{"\"\<IcosphereSphere.stl\>\"", ",", "sphereMesh"}], "]"}], 
+   "\n"}]}]], "Input",
+ CellChangeTimes->{{3.9628731242915554`*^9, 3.962873124292556*^9}, {
+   3.962873195234911*^9, 3.962873198785383*^9}, {3.962873329459304*^9, 
+   3.962873329656927*^9}, 3.962873587818697*^9, {3.962873654987546*^9, 
+   3.9628736651554546`*^9}, {3.9628736973499413`*^9, 3.962873826688758*^9}, {
+   3.9628738672421694`*^9, 3.9628738682960153`*^9}, {3.9628742301620426`*^9, 
+   3.9628742338769493`*^9}, {3.962874636199873*^9, 3.9628746575166607`*^9}, 
+   3.9628761045641127`*^9, {3.9628761958770256`*^9, 3.9628762024710255`*^9}, {
+   3.962876698716367*^9, 3.9628767073637505`*^9}, {3.962876762451853*^9, 
+   3.962876779775022*^9}, {3.9628769220734067`*^9, 3.9628769385207715`*^9}, {
+   3.9628775608020177`*^9, 
+   3.9628775707236805`*^9}},ExpressionUUID->"8f939689-bb07-44c5-a64c-\
+36a1de258d56"],
+
+Cell[BoxData[
+ InterpretationBox[
+  RowBox[{"\<\"Number of faces: \"\>", "\[InvisibleSpace]", "80"}],
+  SequenceForm["Number of faces: ", 80],
+  Editable->False]], "Print",
+ CellChangeTimes->{
+  3.9628731328389697`*^9, 3.9628732465001583`*^9, 3.9628733350678153`*^9, 
+   3.9628735886715336`*^9, {3.962873656856986*^9, 3.9628736662894254`*^9}, 
+   3.9628736986734557`*^9, {3.9628737481826153`*^9, 3.9628738283360176`*^9}, 
+   3.9628742345748715`*^9, {3.9628761980163546`*^9, 3.962876203005229*^9}, {
+   3.9628766999630117`*^9, 3.9628767079646187`*^9}, 3.96287679657635*^9},
+ CellLabel->
+  "During evaluation of \
+In[217]:=",ExpressionUUID->"54667657-706c-435a-8efc-14f8c536ea88"],
+
+Cell[BoxData["\<\"IcosphereSphere.stl\"\>"], "Output",
+ CellChangeTimes->{
+  3.9628731345583954`*^9, 3.9628732466077023`*^9, 3.962873335097751*^9, 
+   3.962873588687461*^9, {3.962873656883957*^9, 3.9628736678861694`*^9}, 
+   3.9628736986880107`*^9, {3.9628737482132797`*^9, 3.962873828459182*^9}, 
+   3.9628742346122966`*^9, {3.9628761981241965`*^9, 3.962876203046627*^9}, {
+   3.962876700000445*^9, 3.9628767079930506`*^9}, 3.962876796605218*^9},
+ CellLabel->
+  "Out[221]=",ExpressionUUID->"3a96a30b-8619-496a-ba15-efa5f07c4330"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Import", "[", "\"\<IcosphereSphere.stl\>\"", "]"}]], "Input",
+ CellChangeTimes->{{3.962873381526908*^9, 3.962873401964551*^9}, {
+   3.962873871482293*^9, 3.962873876500581*^9}, 3.9628767902308836`*^9},
+ CellLabel->
+  "In[222]:=",ExpressionUUID->"abc086db-0e01-46ef-9e26-00edc2ba23f6"],
+
+Cell[BoxData[
+ Graphics3DBox[
+  TagBox[
+   DynamicModuleBox[{Typeset`mesh = {MeshRegion, {}}}, 
+    TagBox[GraphicsComplex3DBox[CompressedData["
+1:eJx1kzEKAjEQRYNi6xlWRARPsIUQz2BvI1jKFhY2CpZ7C23tPIAQCxHUQl1L
+LRYFRVx0j2CiSfgT1gEJiX9e/sxkS+2g2ckxxmryl2e/KO8uQi6T/vXBWWak
+eO51ZwelZ6H/VOeLyvgsHD3ZAx/PkSOQI/U8w4/Sc+detXrF4KXyGu/VkfjX
+XBubKFb/j9bVu4C94eC9JG9auGlujHnoRyAn9E/GD/YJ73X1HP0b35toT/qg
+8xSHgw/bN+lT+45Rb1e3L4PtkuhNHb1hq85IpC6fcIGD88S+oV+clzMfWy/h
+Q38IX/cV8r96xecZfDzHPNm/xNn/5iLrInM390mf5D3ruuxqwuiBg+8X3wn/
+w3fmnGA9Zu74HvA7knPszhmJlH8AHysPcg==
+      "], 
+      {Hue[0.6, 0.3, 0.85], EdgeForm[Hue[0.6, 0.3, 0.75]], 
+       TagBox[
+        Polygon3DBox[{{1, 2, 3}, {4, 5, 6}, {7, 2, 8}, {9, 10, 11}, {12, 13, 
+         14}, {15, 10, 16}, {17, 18, 19}, {20, 1, 3}, {21, 22, 23}, {24, 25, 
+         6}, {26, 7, 8}, {27, 5, 16}, {28, 4, 6}, {29, 25, 23}, {30, 17, 
+         19}, {31, 32, 33}, {34, 35, 14}, {36, 13, 33}, {37, 26, 8}, {38, 39, 
+         11}, {39, 1, 11}, {2, 39, 8}, {39, 2, 1}, {35, 4, 14}, {5, 35, 16}, {
+         35, 5, 4}, {18, 7, 19}, {2, 18, 3}, {18, 2, 7}, {27, 9, 40}, {10, 27,
+          16}, {27, 10, 9}, {31, 12, 41}, {13, 31, 33}, {31, 13, 12}, {38, 15,
+          42}, {10, 38, 11}, {38, 10, 15}, {22, 17, 23}, {18, 22, 3}, {22, 18,
+          17}, {9, 20, 40}, {1, 9, 11}, {9, 1, 20}, {20, 21, 40}, {22, 20, 
+         3}, {20, 22, 21}, {21, 24, 40}, {25, 21, 23}, {21, 25, 24}, {32, 26, 
+         33}, {7, 32, 19}, {32, 7, 26}, {24, 27, 40}, {5, 24, 6}, {24, 5, 
+         27}, {12, 28, 41}, {4, 12, 14}, {12, 4, 28}, {28, 29, 41}, {25, 28, 
+         6}, {28, 25, 29}, {29, 30, 41}, {17, 29, 23}, {29, 17, 30}, {30, 31, 
+         41}, {32, 30, 19}, {30, 32, 31}, {15, 34, 42}, {35, 15, 16}, {15, 35,
+          34}, {34, 36, 42}, {13, 34, 14}, {34, 13, 36}, {36, 37, 42}, {26, 
+         36, 33}, {36, 26, 37}, {37, 38, 42}, {39, 37, 8}, {37, 39, 38}}],
+        Annotation[#, "Geometry"]& ]}],
+     MouseAppearanceTag["LinkHand"]],
+    AllowKernelInitialization->False],
+   "MeshGraphics3D",
+   AutoDelete->True,
+   Editable->False,
+   Selectable->False],
+  Boxed->False,
+  DefaultBaseStyle->{
+   "MeshGraphics3D", FrontEnd`GraphicsHighlightColor -> Hue[0.1, 1, 0.7]},
+  Lighting->{{"Ambient", 
+     GrayLevel[0.45]}, {"Directional", 
+     GrayLevel[0.3], 
+     ImageScaled[{2, 0, 2}]}, {"Directional", 
+     GrayLevel[0.33], 
+     ImageScaled[{2, 2, 2}]}, {"Directional", 
+     GrayLevel[0.3], 
+     ImageScaled[{0, 2, 2}]}},
+  Method->{"ShrinkWrap" -> True},
+  ViewPoint->{2.490681153307344, -1.7415466422289572`, -1.487791210318386},
+  ViewVertical->{0.7411153296256388, 
+   0.3584886533320444, -0.5676565454797982}]], "Output",
+ CellChangeTimes->{
+  3.962873403361308*^9, 3.962873593498707*^9, {3.9628736611366186`*^9, 
+   3.96287367024955*^9}, 3.962873702038663*^9, {3.96287679202816*^9, 
+   3.9628767995107646`*^9}},
+ CellLabel->
+  "Out[222]=",ExpressionUUID->"ca2d6d0e-ae21-4c65-a07f-39476c2ce5a1"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"n", "=", "40"}], ";"}], " ", "\[IndentingNewLine]", 
+  "\[IndentingNewLine]", 
+  RowBox[{"(*", 
+   RowBox[{"Create", " ", "two", " ", "spheres"}], "*)"}]}], "\n", 
+ RowBox[{
+  RowBox[{"sphere1", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sphere2", "=", 
+    RowBox[{"Sphere", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"3", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+  "  ", "\[IndentingNewLine]", "\[IndentingNewLine]"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"combined", "=", 
+    RowBox[{"DiscretizeGraphics", "[", 
+     RowBox[{
+      RowBox[{"Graphics3D", "[", 
+       RowBox[{"{", 
+        RowBox[{"sphere1", ",", "sphere2"}], "}"}], "]"}], ",", 
+      RowBox[{"MaxCellMeasure", "->", 
+       RowBox[{"{", 
+        RowBox[{"\"\<Area\>\"", "->", 
+         RowBox[{"4", " ", 
+          RowBox[{"Pi", "/", "n"}]}]}], "}"}]}]}], "  ", "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "\[IndentingNewLine]"}], "\n", 
+ RowBox[{"Export", "[", 
+  RowBox[{"\"\<twoSpheres.stl\>\"", ",", "combined"}], "]"}], "\n"}], "Input",
+ CellChangeTimes->{{3.9628740751319847`*^9, 3.9628740857471857`*^9}, {
+   3.9628742423720036`*^9, 3.9628742427350535`*^9}, {3.962876126264161*^9, 
+   3.9628761264737988`*^9}, {3.9628761648429737`*^9, 3.962876166268176*^9}, {
+   3.9628768088985677`*^9, 3.9628768139540358`*^9}, 3.962876893384282*^9, {
+   3.96287754469305*^9, 
+   3.962877556953927*^9}},ExpressionUUID->"dfed5ef3-f324-4776-a592-\
+4f3424e0ce63"],
+
+Cell[BoxData["\<\"C:\\\\Users\\\\fop21181\\\\OneDrive - Science and \
+Technology Facilities Council\\\\Documents\\\\SphereSTL/twoSpheres.stl\"\>"], \
+"Output",
+ CellChangeTimes->{3.962874091216303*^9, 3.962874249951827*^9, 
+  3.962876814838168*^9},
+ CellLabel->
+  "Out[227]=",ExpressionUUID->"82a86065-1d58-45d5-9766-56cbedc1d252"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{"Import", "[", "\"\<twoSpheres.stl\>\"", "]"}]], "Input",
+ CellChangeTimes->{{3.962874108790197*^9, 3.962874112387127*^9}, 
+   3.962876901035078*^9},ExpressionUUID->"cc46d916-4f95-479a-93aa-\
+7adeebfc27ad"],
+
+Cell[BoxData[
+ Graphics3DBox[
+  TagBox[
+   DynamicModuleBox[{Typeset`mesh = {MeshRegion, {}}}, 
+    TagBox[GraphicsComplex3DBox[CompressedData["
+1:eJx1lD9LQzEUxWNrpda24upUFXEWpHYoJKNDXcTFQRBRBKF0cHBR0a1fQBAc
+7CS4iR1chCcoYlvwT10ERYqiIhYrfgKTZ/I8N6QBeSTe/HLuufd2YL4wtRhi
+jE3LvzD7W0PXz578lFZfPjhzrm88T+UPb1U8K2Y+1fnp8N6jZ8WTPfDxHDke
+cmQ8d+hR8dx6V31TycKXuidaF3dEv+YGq1pvqP9vVkbePdgbDr5L7h1E3jS3
+gfdQj4ecYubB6EGf8F07nqN+o7tavyE+6HuKw0FH4JvUqXU3MD742r6s1c5J
+vMljZX02y8j6tvmECxysJ/qGerFeVn2CfAkf/CF87Svc9+MVnzv4eI73pH9N
+a/9XF5kXqbt5T+ok/azzCr5mmXjgYP9in/A2fKvOTczH1B37AedI1jF/wsjy
+51iM58KCOec9KiDOrLmfSkSAPpj3IB51IR/PkUN0XpbjLj2lRDpmv+vPUXaB
+CeaY96fRDoF77ZvkhATsDQffJfqXtxKaQ+Yd9ZD5be10Gj3YJ/guie9b6iH6
+NU/M9MeID/qe9C1h6/d52xsho5P8PkzWwsQHw58od5H4/9/HKInX9UQ+ziNy
+cB7RN+xbrBfxGfIl8w7+kHkfvEoSnSbfs91eFx/PsU/kvPQiJ+iH41y3nZd/
+vv8asXX6eR2NxYkeEw8cMtfQJ7wNn/iWvme2TrsfcI6Yo478F2py++4=
+      "], 
+      {Hue[0.6, 0.3, 0.85], EdgeForm[Hue[0.6, 0.3, 0.75]], 
+       TagBox[Polygon3DBox[CompressedData["
+1:eJwNwwm2qQAAAFANJCRSaaRCGZKhRKRQSpGEFbwNvC39pf53z7nyz+/7ByyV
+Sv/+Qn8BEILLFQSsorV6A2vitVab6JAARNFdhq1wSJUvtwS4IrLdXrvTl2Rl
+0Bxi8oirqlpdA+qgVtVAYAA3y4PWoAwTSAckIAJEeHRc41t8De03Jlhf7mMN
+FZ/W1Lpaw+l2l6Ahmmij5BhA6yhAktSYJiGSpihmzFJdimUkTkakjoRwDD8u
+MxWmzDeECdxoNmBBECesUBFYUexN2mJXbPd6/YnU6/SkPq5MB3gLHyjKcIop
+TQUbDkdTbigPudFInWqj6khTZ/rcWCxX+tq0NvZ251j7g3v0ZnP/dL4Ey3C1
+vi72kbGMg/PtcEzS+yPbPbf3PFy/ik0x2+jFutBnmbFbZPtsYbiro+7OXX11
+Nd/WdX+1zMT+bJN7srVfztd6bV6Wczqc3dP85B5M7z0zN+bM8/z3yZt7J9+/
+vAP/7AeXNLyv0mO6Ci/X9+KyvCyudvQx7J1tRFH8CaJlFMTx7XOIz/Hhdks+
+6e14SxPn8c2cvZM9Hs/v9rF7bJ/P/Bs+788wz1/fIl/nxes/Pr1SAA==
+         "]],
+        Annotation[#, "Geometry"]& ]}],
+     MouseAppearanceTag["LinkHand"]],
+    AllowKernelInitialization->False],
+   "MeshGraphics3D",
+   AutoDelete->True,
+   Editable->False,
+   Selectable->False],
+  Boxed->False,
+  DefaultBaseStyle->{
+   "MeshGraphics3D", FrontEnd`GraphicsHighlightColor -> Hue[0.1, 1, 0.7]},
+  Lighting->{{"Ambient", 
+     GrayLevel[0.45]}, {"Directional", 
+     GrayLevel[0.3], 
+     ImageScaled[{2, 0, 2}]}, {"Directional", 
+     GrayLevel[0.33], 
+     ImageScaled[{2, 2, 2}]}, {"Directional", 
+     GrayLevel[0.3], 
+     ImageScaled[{0, 2, 2}]}},
+  Method->{"ShrinkWrap" -> True},
+  ViewPoint->{0.819326414656343, 2.1407795154900917`, -2.4891298263257364`},
+  ViewVertical->{0.08140216319302968, 0.991425288140693, 
+   0.10222321586919096`}]], "Output",
+ CellChangeTimes->{3.9628741141024723`*^9, 3.9628742532950516`*^9},
+ CellLabel->"Out[92]=",ExpressionUUID->"d8ae311b-c149-44c9-a351-9ae059d2393e"]
+}, Open  ]],
+
+Cell[BoxData[
+ RowBox[{"(*", 
+  RowBox[{
+  "Create", " ", "7", " ", "spheres", " ", "with", " ", "80", " ", "faces", 
+   " ", "each"}], "*)"}]], "Input",
+ CellChangeTimes->{{3.9628766867869697`*^9, 
+  3.962876693170693*^9}},ExpressionUUID->"fa93426a-813e-4910-bc91-\
+ba2ddbd21da3"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"n", "=", "40"}], ";"}], " ", "\[IndentingNewLine]", 
+  "\[IndentingNewLine]"}], "\n", 
+ RowBox[{
+  RowBox[{"sphere1", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sphere2", "=", 
+    RowBox[{"Sphere", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"3", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+  " "}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere3", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"sphere4", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere5", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "3"}], ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere6", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", 
+       RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sphere7", "=", 
+    RowBox[{"Sphere", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"0", ",", "0", ",", 
+        RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "  "}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"combined", "=", 
+    RowBox[{"DiscretizeGraphics", "[", 
+     RowBox[{
+      RowBox[{"Graphics3D", "[", 
+       RowBox[{"{", 
+        RowBox[{
+        "sphere1", ",", "sphere2", ",", "sphere3", ",", "sphere4", ",", 
+         "sphere5", ",", "sphere6", ",", "sphere7"}], "}"}], "]"}], ",", 
+      RowBox[{"MaxCellMeasure", "->", 
+       RowBox[{"{", 
+        RowBox[{"\"\<Area\>\"", "->", 
+         RowBox[{"4", " ", 
+          RowBox[{"Pi", "/", "n"}]}]}], "}"}]}]}], "  ", "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "\n", 
+  RowBox[{"(*", 
+   RowBox[{"Export", " ", "to", " ", "STL"}], "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{"Export", "[", 
+  RowBox[{"\"\<7_Icospheres80.stl\>\"", ",", "combined"}], "]"}]}], "Input",
+ CellChangeTimes->{{3.962874311217248*^9, 3.962874394950973*^9}, {
+   3.9628744263219275`*^9, 3.9628745484141474`*^9}, {3.96287617328848*^9, 
+   3.9628761733978395`*^9}, {3.9628766630638905`*^9, 
+   3.9628766782768087`*^9}, {3.962877057358175*^9, 3.96287705749815*^9}, 
+   3.962877540327729*^9},ExpressionUUID->"64fafe44-8082-4b6d-a3d6-\
+d223ccdaf6fd"],
+
+Cell[BoxData["\<\"7_Icospheres80.stl\"\>"], "Output",
+ CellChangeTimes->{3.9628745497353168`*^9, 3.9628770594240637`*^9},
+ CellLabel->
+  "Out[268]=",ExpressionUUID->"76478065-92f2-42be-8386-b9be43e8adf7"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[{
+ RowBox[{
+  RowBox[{
+   RowBox[{"n", "=", "80"}], ";"}], " ", "\n", 
+  "\[IndentingNewLine]"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere1", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sphere2", "=", 
+    RowBox[{"Sphere", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"3", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+  " "}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere3", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\n", 
+ RowBox[{
+  RowBox[{"sphere4", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere5", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"-", "3"}], ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{"sphere6", "=", 
+   RowBox[{"Sphere", "[", 
+    RowBox[{
+     RowBox[{"{", 
+      RowBox[{"0", ",", 
+       RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], 
+  ";"}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"sphere7", "=", 
+    RowBox[{"Sphere", "[", 
+     RowBox[{
+      RowBox[{"{", 
+       RowBox[{"0", ",", "0", ",", 
+        RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "  "}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"combined", "=", 
+    RowBox[{"DiscretizeGraphics", "[", 
+     RowBox[{
+      RowBox[{"Graphics3D", "[", 
+       RowBox[{"{", 
+        RowBox[{
+        "sphere1", ",", "sphere2", ",", "sphere3", ",", "sphere4", ",", 
+         "sphere5", ",", "sphere6", ",", "sphere7"}], "}"}], "]"}], ",", 
+      RowBox[{"MaxCellMeasure", "->", 
+       RowBox[{"{", 
+        RowBox[{"\"\<Area\>\"", "->", 
+         RowBox[{"4", " ", 
+          RowBox[{"Pi", "/", "n"}]}]}], "}"}]}]}], "  ", "]"}]}], ";"}], 
+  "\[IndentingNewLine]", "\n"}], "\[IndentingNewLine]", 
+ RowBox[{"Export", "[", 
+  RowBox[{"\"\<7_Icospheres320.stl\>\"", ",", "combined"}], "]"}]}], "Input",
+ CellChangeTimes->{{3.962877080767399*^9, 3.9628770855339346`*^9}, {
+  3.9628775345768185`*^9, 
+  3.962877536302286*^9}},ExpressionUUID->"be5df24f-eb7a-4745-a83e-\
+e2253860ed80"],
+
+Cell[BoxData["\<\"7_Icospheres320.stl\"\>"], "Output",
+ CellChangeTimes->{3.962877088649434*^9},
+ CellLabel->
+  "Out[278]=",ExpressionUUID->"0f4ec2ec-dfda-4cdc-a6c6-3cfd60f0daa8"]
+}, Open  ]],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.9628745658155394`*^9, 3.9628745919485645`*^9}, 
+   3.962876012476009*^9},ExpressionUUID->"9371ea7b-dbda-4ed6-af52-\
+3228ca159138"],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.9628771073382387`*^9, 
+  3.962877107992752*^9}},ExpressionUUID->"72941b43-b4e1-4e34-bd36-\
+18dac294ea08"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", 
+   RowBox[{
+   "Create", " ", "3", "x3", " ", "grid", " ", "of", " ", "unit", " ", 
+    "Icospheres", " ", "with", " ", "80", " ", "faces", " ", 
+    RowBox[{"each", "."}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"n", "=", "40"}], ";"}], " ", "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere1", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere2", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere3", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere4", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "0", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere5", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere6", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere7", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "3", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere8", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere9", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "3", ",", "3"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere10", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere11", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere12", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere13", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere14", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere15", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere16", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "3", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere17", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere18", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "3", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere19", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", 
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere20", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", 
+         RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere21", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", 
+         RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere22", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere23", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere24", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere25", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "3", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere26", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere27", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "3", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"combined", "=", 
+     RowBox[{"DiscretizeGraphics", "[", 
+      RowBox[{
+       RowBox[{"Graphics3D", "[", 
+        RowBox[{"{", 
+         RowBox[{
+         "sphere1", ",", "sphere2", ",", "sphere3", ",", "sphere4", ",", 
+          "sphere5", ",", "sphere6", ",", "sphere7", ",", "sphere8", ",", 
+          "sphere9", ",", "sphere10", ",", "sphere11", ",", "sphere12", ",", 
+          "sphere13", ",", "sphere14", ",", "sphere15", ",", "sphere16", ",", 
+          "sphere17", ",", "sphere18", ",", "sphere19", ",", "sphere20", ",", 
+          "sphere21", ",", "sphere22", ",", "sphere23", ",", "sphere24", ",", 
+          "sphere25", ",", "sphere26", ",", "sphere27"}], "}"}], "]"}], ",", 
+       RowBox[{"MaxCellMeasure", "->", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Area\>\"", "->", 
+          RowBox[{"4", " ", 
+           RowBox[{"Pi", "/", "n"}]}]}], "}"}]}]}], " ", "]"}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", "\n", 
+   RowBox[{"Export", "[", 
+    RowBox[{"\"\<27_Icospheres80.stl\>\"", ",", "combined"}], 
+    "]"}]}]}]], "Input",
+ CellChangeTimes->{{3.962874906611065*^9, 3.9628749211669793`*^9}, {
+  3.962874985476464*^9, 3.9628750472256727`*^9}, {3.9628752489359818`*^9, 
+  3.9628755535426273`*^9}, {3.9628759959748945`*^9, 3.962875997287861*^9}, {
+  3.962876188034889*^9, 3.9628762168019705`*^9}, {3.962876602649305*^9, 
+  3.962876612446266*^9}, {3.962876726397376*^9, 3.9628767437462945`*^9}, {
+  3.9628775283794923`*^9, 
+  3.9628775302043657`*^9}},ExpressionUUID->"f1942f8b-6496-450f-a884-\
+4a2d33acbe4c"],
+
+Cell[BoxData["\<\"27_Icospheres80.stl\"\>"], "Output",
+ CellChangeTimes->{3.9628755555006757`*^9, 3.9628772899559216`*^9},
+ CellLabel->
+  "Out[313]=",ExpressionUUID->"2d4926c8-22fb-4f07-98de-308ebc21eb62"]
+}, Open  ]],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.96287556225568*^9, 3.962875570444062*^9}, 
+   3.962877100364146*^9},ExpressionUUID->"4c71d8df-1829-4c15-80c1-\
+439de6417d71"],
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.962877102364915*^9, 
+  3.9628771023729024`*^9}},ExpressionUUID->"e6e45632-1431-4a04-9727-\
+fbe6a457a887"],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[
+ RowBox[{
+  RowBox[{"(*", 
+   RowBox[{
+   "Create", " ", "3", "x3", " ", "grid", " ", "of", " ", "unit", " ", 
+    "Icospheres", " ", "with", " ", "320", " ", "faces", " ", 
+    RowBox[{"each", "."}]}], "*)"}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{
+    RowBox[{"n", "=", "100"}], ";"}], " ", "\n", "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere1", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere2", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere3", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere4", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "0", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere5", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere6", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere7", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "3", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere8", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere9", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+         RowBox[{"-", "3"}], ",", "3", ",", "3"}], "}"}], ",", "1"}], "]"}]}],
+     ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere10", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere11", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere12", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", 
+         RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere13", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere14", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere15", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere16", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "3", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere17", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere18", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"0", ",", "3", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere19", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", 
+         RowBox[{"-", "3"}], ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere20", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", 
+         RowBox[{"-", "3"}], ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere21", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", 
+         RowBox[{"-", "3"}], ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere22", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere23", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere24", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "0", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere25", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "3", ",", 
+         RowBox[{"-", "3"}]}], "}"}], ",", "1"}], "]"}]}], ";"}], "\n", 
+   RowBox[{
+    RowBox[{"sphere26", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "3", ",", "0"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   " ", "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"sphere27", "=", 
+     RowBox[{"Sphere", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"3", ",", "3", ",", "3"}], "}"}], ",", "1"}], "]"}]}], ";"}], 
+   "\[IndentingNewLine]", "\[IndentingNewLine]", "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{"Combine", " ", "them"}], "*)"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"combined", "=", 
+     RowBox[{"DiscretizeGraphics", "[", 
+      RowBox[{
+       RowBox[{"Graphics3D", "[", 
+        RowBox[{"{", 
+         RowBox[{
+         "sphere1", ",", "sphere2", ",", "sphere3", ",", "sphere4", ",", 
+          "sphere5", ",", "sphere6", ",", "sphere7", ",", "sphere8", ",", 
+          "sphere9", ",", "sphere10", ",", "sphere11", ",", "sphere12", ",", 
+          "sphere13", ",", "sphere14", ",", "sphere15", ",", "sphere16", ",", 
+          "sphere17", ",", "sphere18", ",", "sphere19", ",", "sphere20", ",", 
+          "sphere21", ",", "sphere22", ",", "sphere23", ",", "sphere24", ",", 
+          "sphere25", ",", "sphere26", ",", "sphere27"}], "}"}], "]"}], ",", 
+       RowBox[{"MaxCellMeasure", "->", 
+        RowBox[{"{", 
+         RowBox[{"\"\<Area\>\"", "->", 
+          RowBox[{"4", " ", 
+           RowBox[{"Pi", "/", "n"}]}]}], "}"}]}]}], " ", "]"}]}], ";"}], "\n",
+    "\[IndentingNewLine]", 
+   RowBox[{"(*", 
+    RowBox[{"Export", " ", "to", " ", "STL"}], "*)"}], "\[IndentingNewLine]", 
+   RowBox[{"Export", "[", 
+    RowBox[{"\"\<27_Icospheres320.stl\>\"", ",", "combined"}], 
+    "]"}]}]}]], "Input",
+ CellChangeTimes->{{3.9628762326032553`*^9, 3.9628762554557505`*^9}, {
+  3.9628765510688453`*^9, 3.9628765940097165`*^9}},
+ CellLabel->
+  "In[228]:=",ExpressionUUID->"6fc84a63-5393-42df-8b6a-affae4b8f492"],
+
+Cell[BoxData["\<\"27_Icospheres320.stl\"\>"], "Output",
+ CellChangeTimes->{3.9628762499756985`*^9, 3.962876544185585*^9, 
+  3.962876976941976*^9},
+ CellLabel->
+  "Out[257]=",ExpressionUUID->"65dc939d-38c7-44ce-aaf9-0d26d0e7a0b9"]
+}, Open  ]],
+
+Cell[CellGroupData[{
+
+Cell[BoxData[""], "Input",
+ CellChangeTimes->{{3.9628771632502327`*^9, 3.9628771841630387`*^9}, {
+   3.962877214699628*^9, 3.9628772573732376`*^9}, {3.962877346734233*^9, 
+   3.9628773529042063`*^9}, {3.962877402439186*^9, 3.962877458544306*^9}, 
+   3.962877522123637*^9},
+ NumberMarks->False,ExpressionUUID->"6f59572c-b30e-41ee-9992-ac89886ad88c"],
+
+Cell[BoxData[
+ Graphics3DBox[
+  TagBox[
+   DynamicModuleBox[{Typeset`mesh = {MeshRegion, {}}}, 
+    TagBox[
+     GraphicsComplex3DBox[{{0.27639320492744446`, 0.8506507873535156, 
+      0.4472135901451111}, {-0.27639320492744446`, 
+      0.8506507873535156, -0.4472135901451111}, {-0.7236068248748779, 
+      0.525731086730957, 
+      0.4472135901451111}, {-0.7236068248748779, -0.525731086730957, 
+      0.4472135901451111}, {-0.27639320492744446`, -0.8506507873535156, \
+-0.4472135901451111}, {0.27639320492744446`, -0.8506507873535156, 
+      0.4472135901451111}, {0.7236068248748779, 
+      0.525731086730957, -0.4472135901451111}, {-0.8944271802902222, 
+      0., -0.4472135901451111}, {0.8944271802902222, 0., 
+      0.4472135901451111}, {
+      0.7236068248748779, -0.525731086730957, -0.4472135901451111}, {0., 0., 
+      1.}, {0., 0., -1.}}, 
+      {Hue[0.6, 0.3, 0.85], EdgeForm[Hue[0.6, 0.3, 0.75]], 
+       TagBox[
+        Polygon3DBox[{{1, 2, 3}, {4, 5, 6}, {2, 1, 7}, {4, 3, 8}, {9, 6, 
+         10}, {3, 4, 11}, {2, 7, 12}, {3, 2, 8}, {2, 12, 8}, {12, 5, 8}, {7, 
+         1, 9}, {5, 4, 8}, {6, 5, 10}, {5, 12, 10}, {12, 7, 10}, {7, 9, 10}, {
+         4, 6, 11}, {6, 9, 11}, {9, 1, 11}, {1, 3, 11}}],
+        Annotation[#, "Geometry"]& ]}],
+     MouseAppearanceTag["LinkHand"]],
+    AllowKernelInitialization->False],
+   "MeshGraphics3D",
+   AutoDelete->True,
+   Editable->False,
+   Selectable->False],
+  Boxed->False,
+  DefaultBaseStyle->{
+   "MeshGraphics3D", FrontEnd`GraphicsHighlightColor -> Hue[0.1, 1, 0.7]},
+  Lighting->{{"Ambient", 
+     GrayLevel[0.45]}, {"Directional", 
+     GrayLevel[0.3], 
+     ImageScaled[{2, 0, 2}]}, {"Directional", 
+     GrayLevel[0.33], 
+     ImageScaled[{2, 2, 2}]}, {"Directional", 
+     GrayLevel[0.3], 
+     ImageScaled[{0, 2, 2}]}},
+  Method->{"ShrinkWrap" -> True}]], "Output",
+ CellChangeTimes->{{3.9628771946149597`*^9, 3.9628772657644296`*^9}, {
+  3.9628773271280875`*^9, 3.962877354120316*^9}, {3.9628773983488097`*^9, 
+  3.962877461224329*^9}},
+ CellLabel->
+  "Out[320]=",ExpressionUUID->"a9f9d0a9-3348-4891-8691-8e7b4a8a9892"]
+}, Open  ]]
+},
+WindowSize->{718.5, 735.},
+WindowMargins->{{-5.25, Automatic}, {Automatic, 0}},
+FrontEndVersion->"13.2 for Microsoft Windows (64-bit) (November 18, 2022)",
+StyleDefinitions->"Default.nb",
+ExpressionUUID->"212a2dc0-165a-4c20-b739-238fab0bb364"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 2247, 51, 276, "Input",ExpressionUUID->"8f939689-bb07-44c5-a64c-36a1de258d56"],
+Cell[2830, 75, 678, 13, 22, "Print",ExpressionUUID->"54667657-706c-435a-8efc-14f8c536ea88"],
+Cell[3511, 90, 530, 8, 32, "Output",ExpressionUUID->"3a96a30b-8619-496a-ba15-efa5f07c4330"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[4078, 103, 308, 5, 28, "Input",ExpressionUUID->"abc086db-0e01-46ef-9e26-00edc2ba23f6"],
+Cell[4389, 110, 2930, 58, 376, "Output",ExpressionUUID->"ca2d6d0e-ae21-4c65-a07f-39476c2ce5a1"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[7356, 173, 1641, 44, 257, "Input",ExpressionUUID->"dfed5ef3-f324-4776-a592-4f3424e0ce63"],
+Cell[9000, 219, 331, 6, 52, "Output",ExpressionUUID->"82a86065-1d58-45d5-9766-56cbedc1d252"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[9368, 230, 229, 4, 28, "Input",ExpressionUUID->"cc46d916-4f95-479a-93aa-7adeebfc27ad"],
+Cell[9600, 236, 2538, 54, 176, "Output",ExpressionUUID->"d8ae311b-c149-44c9-a351-9ae059d2393e"]
+}, Open  ]],
+Cell[12153, 293, 281, 7, 28, "Input",ExpressionUUID->"fa93426a-813e-4910-bc91-ba2ddbd21da3"],
+Cell[CellGroupData[{
+Cell[12459, 304, 2741, 84, 333, "Input",ExpressionUUID->"64fafe44-8082-4b6d-a3d6-d223ccdaf6fd"],
+Cell[15203, 390, 204, 3, 32, "Output",ExpressionUUID->"76478065-92f2-42be-8386-b9be43e8adf7"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[15444, 398, 2496, 80, 333, "Input",ExpressionUUID->"be5df24f-eb7a-4745-a83e-e2253860ed80"],
+Cell[17943, 480, 179, 3, 32, "Output",ExpressionUUID->"0f4ec2ec-dfda-4cdc-a6c6-3cfd60f0daa8"]
+}, Open  ]],
+Cell[18137, 486, 179, 3, 28, "Input",ExpressionUUID->"9371ea7b-dbda-4ed6-af52-3228ca159138"],
+Cell[18319, 491, 154, 3, 28, "Input",ExpressionUUID->"72941b43-b4e1-4e34-bd36-18dac294ea08"],
+Cell[CellGroupData[{
+Cell[18498, 498, 8285, 249, 809, "Input",ExpressionUUID->"f1942f8b-6496-450f-a884-4a2d33acbe4c"],
+Cell[26786, 749, 205, 3, 32, "Output",ExpressionUUID->"2d4926c8-22fb-4f07-98de-308ebc21eb62"]
+}, Open  ]],
+Cell[27006, 755, 174, 3, 28, "Input",ExpressionUUID->"4c71d8df-1829-4c15-80c1-439de6417d71"],
+Cell[27183, 760, 154, 3, 28, "Input",ExpressionUUID->"e6e45632-1431-4a04-9727-fbe6a457a887"],
+Cell[CellGroupData[{
+Cell[27362, 767, 8154, 248, 828, "Input",ExpressionUUID->"6fc84a63-5393-42df-8b6a-affae4b8f492"],
+Cell[35519, 1017, 229, 4, 32, "Output",ExpressionUUID->"65dc939d-38c7-44ce-aaf9-0d26d0e7a0b9"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[35785, 1026, 348, 5, 28, "Input",ExpressionUUID->"6f59572c-b30e-41ee-9992-ac89886ad88c"],
+Cell[36136, 1033, 2088, 47, 371, "Output",ExpressionUUID->"a9f9d0a9-3348-4891-8691-8e7b4a8a9892"]
+}, Open  ]]
+}
+]
+*)
+
