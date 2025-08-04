@@ -9,8 +9,7 @@ using MeshIO
 using SparseArrays
 using StaticArrays
 using LoopVectorization
-using PyCall
-trimesh = pyimport_conda("trimesh", "trimesh")
+using Distributions
 
 
 # Extracting the contents of the .nxspe file.
@@ -153,27 +152,23 @@ indices = GeometryBasics.faces(stl)
 const n_faces = length(indices)
 
 
-# Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, in preparation for hte Moller-Trumbore Algorithm.
+# Setting the desired number of MC sample points and creating matrix for coordinates.
+
+
+const n_mc = 10
+mc_coords = Float32.(zeros(n_mc, 3))
+
+
+# Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
 # The vertices of the triangular faces are labelled V1, V2, V3.
 
-
+v1s = vertices[getindex.(indices, 1)]
 e2s = vertices[getindex.(indices, 2)] - vertices[getindex.(indices, 1)]
 e3s = vertices[getindex.(indices, 3)] - vertices[getindex.(indices, 1)]
 # Converting the 3-vectors within e2s and e3s to static arrays.
+v1s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in v1s]
 e2s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e2s]
 e3s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e3s]
-
-
-# Determining the coordinates of the points within our sample used for the Monte Carlo approximation of the volume integral.
-# User will have to run(`$(PyCall.python) -m pip install "trimesh[easy]"`) in their Julia REPL. Write in README or PyProject.toml.
-
-
-# Largest number of MC sampling points we want to use.
-const n_mc_max = 2
-mesh = trimesh.load_mesh("crystal.stl")
-mc_coords = Float32.(trimesh.sample.volume_mesh(mesh, n_mc_max))
-# Actual number of MC sampling points we use, n_mc ≤ n_mc_max.
-const n_mc = length(mc_coords[:, 1])
 
 
 # Setting the (estimated) parameters of the sample.
@@ -184,6 +179,9 @@ const n = Float32(1e23)
 # The reference absorption cross section at 25.3 meV in cm^2.
 const axs_ref = Float32(1e-23)
 const en_ref = Float32(25.3)
+# The crystal morphology affects the speed of program.
+# 'complex' means a sample with a concave surface or multiple crystals.
+const complex = false
 
 
 # Defining the function that calculates the absorption cross sections for the inputted energy.
@@ -211,7 +209,129 @@ end
 const axsi = axs_calc(en_i)
 
 
+# Defining a function to output the net path length from a series of distances to intersections.
+
+
+"""
+Calculates the net path length through a general sample from the ordered collection of distinct distances between the origin and the intersection points.
+
+Parameters
+----------
+path_lengths (odd-length vector with float elements): Ordered vector of non-duplicate distances, in units of the .stl file.
+n_int (integer): Number of intersections.
+
+Returns
+-------
+path_length (float): Net path length of neutron in sample, in units of the .stl file.
+"""
+function net_len_calc!(path_lengths :: Vector{Float32}, n_int :: Integer) :: Float32
+    # Calculating the path length via a recurrence relation.
+    n_rr = Int((n_int - 1) / 2)
+    path_length = path_lengths[1]
+    for i in 1:n_rr
+        path_length += path_lengths[2*i + 1] - path_lengths[2*i]
+    end
+    return path_length
+end
+
+
+# Defining the function to determine the net length of the paths the neutrons take within the sample.
+# For a general sample.
+
+
+"""
+Calculates the net distance the neutron travels inside the sample. Accomplishes this by considering ray-triangle intersections.
+Iterates through each face to determine which one is intersected.
+Exploits the method described in 'Fast, Minimum Storage Ray-Triangle Intersection' by Moller and Trumbore.
+
+Parameters
+----------
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+d (3-vector with float elements): Normalised direction vector.
+ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
+dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+origin (3-vector with float elements): Coordinates of scattering sites.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+λs (vector with float elements): Empty vector that will store distances between origin and intersection points, in units of the .stl file.
+path_lengths (vector with float elements): Empty vector that will store non-duplicate distances, in units of the .stl file.
+
+Returns
+-------
+path_length (float): Net distance travelled by the neutron in the sample, in units of the .stl file. nothing is outputted if there is no intersection.
+"""
+function gen_len_calc(
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    d :: SVector{3, Float32}, 
+    ps :: Vector{SVector{3, Float32}}, 
+    dets :: Vector{Float32}, 
+    origin :: Vector{Float32}, 
+    v1s :: Vector{SVector{3, Float32}},
+    λs :: Vector{Float32}, 
+    path_lengths :: Vector{Float32}
+    )
+    # Emptying the pre-allocated path length stores.
+    empty!(λs)
+    empty!(path_lengths)
+    # Iterating through all faces.
+    @inbounds for j in 1:n_faces
+        # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
+        # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
+        det = dets[j]
+        if abs(det) > 1e-6
+            inv_det = 1 / det
+            # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
+            t = origin - v1s[j]
+            q = cross(t, e2s[j])
+            # Calculating the barycentric coordinates, (u,v), of the intersection.
+            u = inv_det * (dot(ps[j], t))
+            v = inv_det * (dot(q, d))
+            # Determining whether the intersection point lies within the triangle.
+            if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
+                # Neutron's path described by r(λ) = origin + λd.
+                λ = inv_det * dot(q, e3s[j])
+                # Only accepting positive λ as this indicates paths moving in positive direction of d.
+                if λ > 0
+                    # The path length is simply λ as the direction vector is normalised.
+                    push!(λs, λ)
+                end
+            end
+        end
+    end
+    if isempty(λs)
+        # Returning nothing if no path is intersected.
+        # Assuming the origin is within the sample, then this only occurs due to floating point precision errors.
+        # ie u+v = 1.00000001 > 1.
+        return nothing
+    end
+    # Ordering the path lengths.
+    sort!(λs)
+    # Filling the array with non-duplicate lengths in order.
+    # Duplicate path lengths arise from paths near a vertex between faces.
+    push!(path_lengths, λs[1])
+    for i in λs
+        if abs(i - last(path_lengths)) > 1e-3
+            push!(path_lengths, i)
+        end
+    end
+    # Finding the number of intersections.
+    n_int = length(path_lengths)
+    # An odd number of intersections is expected as we start inside the sample.
+    # This assumes no tangential intersections.
+    if isodd(n_int)
+        # Calculating the path length via a recurrence relation.
+        path_length = net_len_calc!(path_lengths, n_int)
+    else
+        # Returning nothing if there is an even number of intersections.
+        # This suggests an error potentially from a sample outside the crystals or tangential intersection.
+        return nothing
+    end
+end
+
+
 # Defining the function to determine the length of the paths the neutrons take within the sample.
+# For a single, convex crystal.
 
 
 """
@@ -223,35 +343,35 @@ Parameters
 ----------
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-d (3-vector with float elements): Direction vector.
+d (3-vector with float elements): Normalised direction vector.
 ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
 dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
 origin (3-vector with float elements): Coordinates of scattering sites.
-vertices (n_faces-vector of 3-vectors with float elements): Vertices of triangular faces.
-indices (n_faces-vector of 3-vectors with integer elements): Indices describing which vertices form which triangles.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 
 Returns
 -------
-path_length (float): Distance between origin and the surface the neutron path intersects, in units of the .stl file. None is outputted if there is no intersection.
+path_length (float): Distance between origin and the surface the neutron path intersects, in units of the .stl file. nothing is outputted if there is no intersection.
 """
-function len_calc(
+function sin_len_calc(
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
     d :: SVector{3, Float32}, 
     ps :: Vector{SVector{3, Float32}}, 
     dets :: Vector{Float32}, 
     origin :: Vector{Float32}, 
-    vertices :: Vector{Point{3, Float32}}, 
-    indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}
+    v1s :: Vector{SVector{3, Float32}}, 
+    λs :: Vector{Float32}, 
+    path_lengths :: Vector{Float32}
     )
     # Iterating through all faces.
     @inbounds for j in 1:n_faces
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
-        # Keeping only positive determinants, equivalent to triangular faces in the forward direction.
+        # Keeping only negative determinants, culling front-facing triangles as we are inside the mesh.
         det = dets[j]
-        if det > 1e-10
+        if det < -1e-6
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
-            t = origin - vertices[indices[j][1]]
+            t = origin - v1s[j]
             q = cross(t, e2s[j])
             # Calculating the barycentric coordinates, (u,v), of the intersection.
             u = (1 / det) * (dot(ps[j], t))
@@ -260,9 +380,11 @@ function len_calc(
             if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
                 # Neutron's path described by r(λ) = origin + λd.
                 λ = (1 / det) * dot(q, e3s[j])
-                # Determining the path length based on λ and the magnitude of the inputted direction vector, d.
-                path_length = abs(λ) * norm(d)
-                return Float32(path_length)
+                # Only accepting positive λ as this indicates paths moving in positive direction of d.
+                if λ > 0
+                    # The path length is simply λ as the direction vector is normalised.
+                    return Float32(λ)
+                end
             end
         end
     end
@@ -281,7 +403,7 @@ Calculates p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT A
 
 Parameters
 ----------
-d (3-vector with float elements): Direction vector.
+d (3-vector with float elements): Normalised direction vector.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
 ps (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
@@ -311,18 +433,191 @@ function pdet_calc!(
 end
 
 
-# The pre-scattering neutron path lengths are dependent only on the MC coordinates so can be pre-calculated.
+# Defining the function to determine the number of times the neutron intersects the sample.
 
 
+"""
+Calculates how many faces a neutron intersects given its direction vector. Accomplishes this by considering ray-triangle intersections.
+Iterates through each face to determine which one is intersected.
+Exploits the method described in 'Fast, Minimum Storage Ray-Triangle Intersection' by Moller and Trumbore.
+
+Parameters
+----------
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+d (3-vector with float elements): Normalised direction vector.
+ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
+dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+origin (3-vector with float elements): Coordinates of scattering sites.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+λs (vector with float elements): Empty vector that will store distances between origin and intersection points, in units of the .stl file.
+path_lengths (vector with float elements): Empty vector that will store non-duplicate distances, in units of the .stl file.
+
+Returns
+-------
+n_int (integer): Number of intersections.
+"""
+function int_calc(
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    d :: SVector{3, Float32}, 
+    ps :: Vector{SVector{3, Float32}}, 
+    dets :: Vector{Float32}, 
+    origin :: Vector{Float32}, 
+    v1s :: Vector{SVector{3, Float32}},
+    λs :: Vector{Float32}, 
+    path_lengths :: Vector{Float32}
+    ) :: Integer
+    # Emptying the pre-allocated path length stores.
+    empty!(λs)
+    empty!(path_lengths)
+    # Iterating through all faces.
+    @inbounds for j in 1:n_faces
+        # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
+        # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
+        det = dets[j]
+        if abs(det) > 1e-6
+            inv_det = 1 / det
+            # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
+            t = origin - v1s[j]
+            q = cross(t, e2s[j])
+            # Calculating the barycentric coordinates, (u,v), of the intersection.
+            u = inv_det * (dot(ps[j], t))
+            v = inv_det * (dot(q, d))
+            # Determining whether the intersection point lies within the triangle.
+            if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
+                # Neutron's path described by r(λ) = origin + λd.
+                λ = inv_det * dot(q, e3s[j])
+                # Only accepting positive λ corresponding to forward direction.
+                if λ > 0
+                    # The path length is simply λ as the direction vector is normalised.
+                    push!(λs, λ)
+                end
+            end
+        end
+    end
+    if isempty(λs)
+        # Returning 0 if no surface is intersected.
+        return 0
+    end
+    # Ordering the path lengths.
+    sort!(λs)
+    # Filling the array with non-duplicate lengths in order.
+    # Duplicate path lengths arise from paths near a vertex between faces.
+    push!(path_lengths, λs[1])
+    for i in λs
+        if abs(i - last(path_lengths)) > 1e-6
+            push!(path_lengths, i)
+        end
+    end
+    # Finding the number of intersections.
+    n_int = length(path_lengths)
+    return n_int
+end
+
+
+# Defining a function to generate the desired number of MC sample points.
+
+
+"""
+Generates the required number of MC sample points.
+
+Parameters
+----------
+min_coord (3-vector with float elements): Minimum value of each x, y and z coordinate, in units of .stl file.
+max_coord (3-vector with float elements): Maximum value of each x, y and z coordinate, in units of .stl file.
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+mc_coords (n_mc-vector of 3-vectors with float elements): Empty matrix of coordinates of sample points.
+
+Returns
+-------
+mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+"""
+
+function sampling!(
+    min_coord :: Vector{Float32}, 
+    max_coord :: Vector{Float32}, 
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    v1s :: Vector{SVector{3, Float32}}, 
+    mc_coords :: Matrix{Float32}
+    ) :: Matrix{Float32}
+    # Pre-allocating the necessary vectors.
+    λs = Vector{Float32}(undef, 10)
+    path_lengths = Vector{Float32}(undef, 10)
+    p = Vector{SVector{3, Float32}}(undef, n_faces)
+    det = Vector{Float32}(undef, n_faces)
+    test = Vector{Float32}(undef, 3)
+    # Pre-calculating uniform distribution describing the volume our crystal(s) lies in.
+    x_range = Uniform(min_coord[1], max_coord[1])
+    y_range = Uniform(min_coord[2], max_coord[2])
+    z_range = Uniform(min_coord[3], max_coord[3])
+    # Sending a dummy neutron along the x direction, starting at this test coordinate.
+    d = SVector{3, Float32}([1, 0, 0])
+    # Calculating p and det required for the MT algorithm.
+    pdet_calc!(d, e2s, e3s, p, det)
+    # Tallying the number of accepted coordinates.
+    n_acc = 0
+    # Continuing this sample generation until there are n_mc coordinates inside the crytal(s).
+    while n_acc < n_mc
+        # Generating a random coordinate within the pre-defined sample range.
+        x = rand(x_range)
+        y = rand(y_range)
+        z = rand(z_range)
+        test[1] = x
+        test[2] = y
+        test[3] = z
+        # Calculating the number of intersections this theoretical neutron makes with the sample surfaces.
+        n_int = int_calc(e2s, e3s, d, p, det, test, v1s, λs, path_lengths)
+        # If it makes an even number of intersections, it is outside a sample.
+        # Odd number of intersections means it began in a sample.
+        if isodd(n_int)
+            # Accepting this test coordinate.
+            mc_coords[n_acc + 1, :] = test
+            n_acc += 1
+        end
+    end
+    return mc_coords
+end
+
+
+# Determining the coordinates of the points within our sample used for the Monte Carlo approximation of the volume integral.
+
+
+# Finding the maximum and minimum value of each coordinate.
+max_coord = [maximum(getindex.(vertices, 1)), maximum(getindex.(vertices, 2)), maximum(getindex.(vertices, 3))]
+min_coord = [minimum(getindex.(vertices, 1)), minimum(getindex.(vertices, 2)), minimum(getindex.(vertices, 3))]
+# Filling this matrix with the randomly generated sample points.
+sampling!(min_coord, max_coord, e2s, e3s, v1s, mc_coords)
+
+
+# The pre-scattering neutron path lengths are dependent only on the MC coordinates.
+# They can, therefore, be calculated and stored.
+
+
+# Normalising the pre-scattering direction vector.
+di = -ki / norm(-ki)
+# Pre-allocating the path length stores.
+# The length of these vectors should be the maximum expected number of intersections.
+λs = Vector{Float32}(undef, 10)
+path_lengths = Vector{Float32}(undef, 10)
 # Pre-allocating these vectors.
 p_i = Vector{SVector{3, Float32}}(undef, n_faces)
 det_i = Vector{Float32}(undef, n_faces)
 # Calculating p and det required for the MT algorithm.
-p_i, det_i = pdet_calc!(-ki, e2s, e3s, p_i, det_i)
+p_i, det_i = pdet_calc!(di, e2s, e3s, p_i, det_i)
 len_i = Float32.(zeros(n_mc))
 # Iterating through the Monte Carlo sample points to find the pre-scattering path length of each.
-for i in 1:n_mc
-    len_i[i] = len_calc(e2s, e3s, -ki, p_i, det_i, mc_coords[i, :], vertices, indices)
+if complex
+    for i in 1:n_mc
+        len_i[i] = gen_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i, :], v1s, λs, path_lengths)
+    end
+else
+    for i in 1:n_mc
+        len_i[i] = sin_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i, :], v1s, λs, path_lengths)
+    end
 end
 
 
@@ -334,11 +629,9 @@ Calculates the attenuation factor given a set initial and final energy and wavev
 
 Parameters
 ----------
-ki (3-vector with float elements): Pre-scattering wavevector of neutron, in Angstrom^-1.
-kf (3-vector with float elements): Post-scattering wavevector of neutron, in Angstrom^-1.
+df (3-vector with float elements): Normalised post-scattering neutron direction vector, in Angstrom^-1.
 en_f (float): Post-scattering energy of neutron, in meV.
-vertices (n_faces-vector of 3-vectors with float elements): Vertices of the triangular faces.
-indices (n_faces-vector of 3-vectors with integer elements): Indices describing which vertices correspond to which triangles.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
 mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
@@ -351,40 +644,51 @@ Returns
 atten_calc (float): Attenuation factor.
 """
 function atten_calc(
-    ki :: SVector{3, Float32}, 
-    kf :: SVector{3, Float32}, 
+    df :: SVector{3, Float32}, 
     en_f :: Float32, 
-    vertices :: Vector{Point{3, Float32}}, 
-    indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}, 
+    v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
     mc_coords :: Matrix{Float32}, 
     len_i :: Vector{Float32},
     p_f :: Vector{SVector{3, Float32}},
-    det_f :: Vector{Float32}
+    det_f :: Vector{Float32}, 
+    λs :: Vector{Float32}, 
+    path_lengths :: Vector{Float32}
     ) :: Float32
     # Calculating the absorption cross section after the neutron scatters.
     axsf = axs_calc(en_f)
     # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
-    p_f, det_f = pdet_calc!(kf, e2s, e3s, p_f, det_f)
-    # Talling the number of MC sample points ignored due to no path length calculated.
-    ignored_pts = 0
+    p_f, det_f = pdet_calc!(df, e2s, e3s, p_f, det_f)
+    # Tallying the number of accepted MC sample points where a path length could be calculated.
+    acc_pts = 0
     atten = 0
-    for i in 1:n_mc
-        # Calculating the path length, len_f, at this sample point.
-        len_f = len_calc(e2s, e3s, kf, p_f, det_f, mc_coords[i, :], vertices, indices)
-        if typeof(len_f) != Float32
-            ignored_pts += 1
-        else
-            # Adding the attenuation factor contribution from this sample point to A.
-            atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
+    if complex
+        @inbounds for i in 1:n_mc
+            # Calculating the path length, len_f, at this sample point.
+            len_f = gen_len_calc(e2s, e3s, df, p_f, det_f, mc_coords[i, :], v1s, λs, path_lengths)
+            if typeof(len_f) == Float32
+                # Adding the attenuation factor contribution from this sample point to A.
+                atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
+                acc_pts += 1
+            end
+        end
+    else
+        @inbounds for i in 1:n_mc
+            # Calculating the path length, len_f, at this sample point.
+            len_f = sin_len_calc(e2s, e3s, df, p_f, det_f, mc_coords[i, :], v1s, λs, path_lengths)
+            if typeof(len_f) == Float32
+                # Adding the attenuation factor contribution from this sample point to A.
+                atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
+                acc_pts += 1
+            end
         end
     end
     # Dividing by the total number of contributing sample points.
-    if n_mc == ignored_pts
+    if acc_pts == 0
         error("The path length could not be calculated for any sample point. Are they all within the sample?")
     else
-        atten = atten / (n_mc - ignored_pts)
+        atten = atten / (acc_pts)
         return atten
     end
 end
@@ -402,11 +706,9 @@ s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal 
 kx (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in x direction, in Angstrom^-1.
 ky (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in y direction, in Angstrom^-1.
 kz (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in z direction, in Angstrom^-1.
-ki (3-vector with float elements): Pre-scattering neutron wavevector, in Angstrom^-1.
 en_i (float): Pre-scattering neutron energy, in meV.
 ef_bins (n_bins-vector with float elements): Post-scattering neutron energy of each bin, in meV.
-vertices (n_faces-vector of 3-vectors with float elements): Vertices of the triangular faces.
-indices (n_faces-vector of 3-vectors with integer elements): Indices describing which vertices correspond to which triangles.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
 mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
@@ -414,17 +716,15 @@ len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, 
 
 Returns
 -------
-atten_grid (n_bins x n_detectors matrix with float elements): Attenuation factor grid.
+atten_grid (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
 """
 function a_grid_calc(
     s_data :: SparseMatrixCSC{Float32, Int64}, 
     kx :: AbstractMatrix{Float32}, 
     ky :: AbstractMatrix{Float32}, 
     kz :: AbstractMatrix{Float32}, 
-    ki :: SVector{3, Float32}, 
     ef_bins :: SVector{n_bins, Float32}, 
-    vertices :: Vector{Point{3, Float32}}, 
-    indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}, 
+    v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
     mc_coords :: Matrix{Float32}, 
@@ -436,10 +736,16 @@ function a_grid_calc(
     # Pre-allocating the vectors needed for the MT algorithm.
     p_f = Vector{SVector{3, Float32}}(undef, n_faces)
     det_f = Vector{Float32}(undef, n_faces)
+    # Pre-allocating the path length stores.
+    # The length of these vectors should be the maximum expected number of intersections.
+    λs = Vector{Float32}(undef, 10)
+    path_lengths = Vector{Float32}(undef, 10)
     # Skipping checks on array lengths using @inbounds.
     @inbounds for (i, j) in zip(idx[1], idx[2])
         kf = SVector(kx[i, j], ky[i, j], kz[i, j])
-        atten_grid[i, j] = atten_calc(ki, kf, ef_bins[i], vertices, indices, e2s, e3s, mc_coords, len_i, p_f, det_f)
+        # Normalising the post-scattering direction vector.
+        df = kf / norm(kf)
+        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, mc_coords, len_i, p_f, det_f, λs, path_lengths)
     end
     return atten_grid
 end
@@ -457,11 +763,11 @@ s_data = sparse(data_copy)
 # Testing the time taken to output this grid of attenuation factors.
 
 
-atten_grid = a_grid_calc(s_data, kx, ky, kz, ki, ef_bins, vertices, indices, e2s, e3s, mc_coords, len_i)
+atten_grid = a_grid_calc(s_data, kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i)
 # Converting the attenuation factors to a sparse matrix.
 s_atten = sparse(atten_grid)
 # Testing the same (known to be non-zero) datapoint.
-display(s_atten[160, 6])
+println("The attenuation factor at this test point was $(s_atten[160, 6])")
 
 
 # Defining the function to correct the data/signal for absorption.
@@ -498,5 +804,5 @@ c_data = data_corr(s_data, s_atten)
 # Converting this corrected data into a sparse matrix.
 s_c_data = sparse(c_data)
 # Testing the same (known to be non-zero) datapoint.
-display(s_data[160,6])
-display(s_c_data[160,6])
+println("The signal at this test point was $(s_data[160,6])")
+println("The corrected signal is therefore $(s_c_data[160,6])")
