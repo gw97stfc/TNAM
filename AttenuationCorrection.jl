@@ -488,9 +488,11 @@ function int_calc(
             if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
                 # Neutron's path described by r(λ) = origin + λd.
                 λ = inv_det * dot(q, e3s[j])
-                # Accepting all λ as we want to consider forward and backward directions.
-                # The path length is simply λ as the direction vector is normalised.
-                push!(λs, λ)
+                # Only accepting positive λ corresponding to forward direction.
+                if λ > 0
+                    # The path length is simply λ as the direction vector is normalised.
+                    push!(λs, λ)
+                end
             end
         end
     end
@@ -504,7 +506,7 @@ function int_calc(
     # Duplicate path lengths arise from paths near a vertex between faces.
     push!(path_lengths, λs[1])
     for i in λs
-        if abs(i - last(path_lengths)) > 1e-3
+        if abs(i - last(path_lengths)) > 1e-6
             push!(path_lengths, i)
         end
     end
@@ -554,6 +556,8 @@ function sampling!(
     z_range = Uniform(min_coord[3], max_coord[3])
     # Sending a dummy neutron along the x direction, starting at this test coordinate.
     d = SVector{3, Float32}([1, 0, 0])
+    # Calculating p and det required for the MT algorithm.
+    pdet_calc!(d, e2s, e3s, p, det)
     # Tallying the number of accepted coordinates.
     n_acc = 0
     # Continuing this sample generation until there are n_mc coordinates inside the crytal(s).
@@ -565,8 +569,6 @@ function sampling!(
         test[1] = x
         test[2] = y
         test[3] = z
-        # Calculating p and det required for the MT algorithm.
-        pdet_calc!(d, e2s, e3s, p, det)
         # Calculating the number of intersections this theoretical neutron makes with the sample surfaces.
         n_int = int_calc(e2s, e3s, d, p, det, test, v1s, λs, path_lengths)
         # If it makes an even number of intersections, it is outside a sample.
@@ -615,7 +617,6 @@ if complex
 else
     for i in 1:n_mc
         len_i[i] = sin_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i, :], v1s, λs, path_lengths)
-        display(len_i)
     end
 end
 
@@ -762,11 +763,11 @@ s_data = sparse(data_copy)
 # Testing the time taken to output this grid of attenuation factors.
 
 
-atten_grid = a_grid_calc(s_data, kx, ky, kz, ki, ef_bins, vertices, indices, e2s, e3s, mc_coords, len_i)
+atten_grid = a_grid_calc(s_data, kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i)
 # Converting the attenuation factors to a sparse matrix.
 s_atten = sparse(atten_grid)
 # Testing the same (known to be non-zero) datapoint.
-display(s_atten[160, 6])
+println("The attenuation factor at this test point was $(s_atten[160, 6])")
 
 
 # Defining the function to correct the data/signal for absorption.
@@ -803,5 +804,5 @@ c_data = data_corr(s_data, s_atten)
 # Converting this corrected data into a sparse matrix.
 s_c_data = sparse(c_data)
 # Testing the same (known to be non-zero) datapoint.
-display(s_data[160,6])
-display(s_c_data[160,6])
+println("The signal at this test point was $(s_data[160,6])")
+println("The corrected signal is therefore $(s_c_data[160,6])")
