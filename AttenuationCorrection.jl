@@ -529,11 +529,11 @@ max_coord (3-vector with float elements): Maximum value of each x, y and z coord
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-mc_coords (n_mc-vector of 3-vectors with float elements): Empty matrix of coordinates of sample points.
+coords (n_mc-vector of 3-vectors with float elements): Empty matrix of coordinates of sample points.
 
 Returns
 -------
-mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 """
 
 function sampling!(
@@ -542,7 +542,7 @@ function sampling!(
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
     v1s :: Vector{SVector{3, Float32}}, 
-    mc_coords :: Matrix{Float32}
+    coords :: Matrix{Float32}
     ) :: Matrix{Float32}
     # Pre-allocating the necessary vectors.
     λs = Vector{Float32}(undef, 10)
@@ -575,11 +575,11 @@ function sampling!(
         # Odd number of intersections means it began in a sample.
         if isodd(n_int)
             # Accepting this test coordinate.
-            mc_coords[n_acc + 1, :] = test
+            coords[n_acc + 1, :] = test
             n_acc += 1
         end
     end
-    return mc_coords
+    return coords
 end
 
 
@@ -634,7 +634,7 @@ en_f (float): Post-scattering energy of neutron, in meV.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 len_i (n_mc-vector of float elements): Pre-scattering path length of neutron, in units of .stl file.
 p_f (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
 det_f (n_faces-vector with float elements): Pre-allocated vector.
@@ -649,7 +649,7 @@ function atten_calc(
     v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
-    mc_coords :: Matrix{Float32}, 
+    coords :: Matrix{Float32}, 
     len_i :: Vector{Float32},
     p_f :: Vector{SVector{3, Float32}},
     det_f :: Vector{Float32}, 
@@ -666,7 +666,7 @@ function atten_calc(
     if complex
         @inbounds for i in 1:n_mc
             # Calculating the path length, len_f, at this sample point.
-            len_f = gen_len_calc(e2s, e3s, df, p_f, det_f, mc_coords[i, :], v1s, λs, path_lengths)
+            len_f = gen_len_calc(e2s, e3s, df, p_f, det_f, coords[i, :], v1s, λs, path_lengths)
             if typeof(len_f) == Float32
                 # Adding the attenuation factor contribution from this sample point to A.
                 atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
@@ -676,7 +676,7 @@ function atten_calc(
     else
         @inbounds for i in 1:n_mc
             # Calculating the path length, len_f, at this sample point.
-            len_f = sin_len_calc(e2s, e3s, df, p_f, det_f, mc_coords[i, :], v1s, λs, path_lengths)
+            len_f = sin_len_calc(e2s, e3s, df, p_f, det_f, coords[i, :], v1s, λs, path_lengths)
             if typeof(len_f) == Float32
                 # Adding the attenuation factor contribution from this sample point to A.
                 atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
@@ -711,7 +711,7 @@ ef_bins (n_bins-vector with float elements): Post-scattering neutron energy of e
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, in units of .stl file.
 
 Returns
@@ -727,7 +727,7 @@ function a_grid_calc(
     v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
-    mc_coords :: Matrix{Float32}, 
+    coords :: Matrix{Float32}, 
     len_i :: Vector{Float32}
     ) :: Matrix{Float32}
     atten_grid = zeros(Float32, n_bins, n_detectors)
@@ -745,7 +745,7 @@ function a_grid_calc(
         kf = SVector(kx[i, j], ky[i, j], kz[i, j])
         # Normalising the post-scattering direction vector.
         df = kf / norm(kf)
-        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, mc_coords, len_i, p_f, det_f, λs, path_lengths)
+        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, coords, len_i, p_f, det_f, λs, path_lengths)
     end
     return atten_grid
 end
