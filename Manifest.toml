@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "6044903d0ef457804e221080dfd1c77a119ef2f4"
+project_hash = "0d56d03b8dec86774d1a8bc90597f5fdd9be9448"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
@@ -645,12 +645,6 @@ git-tree-sha1 = "1d36ef11a9aaf1e8b74dacc6a731dd1de8fd493d"
 uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
 version = "1.3.0"
 
-[[deps.PyCall]]
-deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
-git-tree-sha1 = "9816a3826b0ebf49ab4926e2b18842ad8b5c8f04"
-uuid = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
-version = "1.96.4"
-
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
 git-tree-sha1 = "9da16da70037ba9d701192e27befedefb91ec284"
@@ -843,18 +837,6 @@ version = "1.0.3"
 deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 version = "1.10.0"
-
-[[deps.TetGen]]
-deps = ["DocStringExtensions", "GeometryBasics", "LinearAlgebra", "Printf", "StaticArrays", "TetGen_jll"]
-git-tree-sha1 = "4a1d0aeb3a1cca1ba8de73a0aaf5b9748aa1d4e5"
-uuid = "c5d3f3f7-f850-59f6-8a2e-ffc6dc1317ea"
-version = "2.0.0"
-
-[[deps.TetGen_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "9ceedd691bce040e24126a56354f20d71554a495"
-uuid = "b47fdcd6-d2c1-58e9-bbba-c1cee8d8c179"
-version = "1.5.3+0"
 
 [[deps.ThreadingUtilities]]
 deps = ["ManualMemory"]
