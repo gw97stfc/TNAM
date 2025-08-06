@@ -152,11 +152,11 @@ indices = GeometryBasics.faces(stl)
 const n_faces = length(indices)
 
 
-# Setting the desired number of MC sample points and creating matrix for coordinates.
+# Setting the desired number of MC sample points and creating vector for coordinates.
 
 
-const n_mc = 10
-mc_coords = Float32.(zeros(n_mc, 3))
+const n_mc = 100
+mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
 
 
 # Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
@@ -266,11 +266,11 @@ function gen_len_calc(
     d :: SVector{3, Float32}, 
     ps :: Vector{SVector{3, Float32}}, 
     dets :: Vector{Float32}, 
-    origin :: Vector{Float32}, 
+    origin :: SVector{3, Float32}, 
     v1s :: Vector{SVector{3, Float32}},
     λs :: Vector{Float32}, 
     path_lengths :: Vector{Float32}
-    )
+    ) :: Union{Float32, Nothing}
     # Emptying the pre-allocated path length stores.
     empty!(λs)
     empty!(path_lengths)
@@ -279,7 +279,8 @@ function gen_len_calc(
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
         det = dets[j]
-        if abs(det) > 1e-6
+        if abs(det) > 1f-6
+            # Pre-computing the inverse determinant.
             inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
@@ -311,7 +312,7 @@ function gen_len_calc(
     # Duplicate path lengths arise from paths near a vertex between faces.
     push!(path_lengths, λs[1])
     for i in λs
-        if abs(i - last(path_lengths)) > 1e-3
+        if abs(i - last(path_lengths)) > 1f-6
             push!(path_lengths, i)
         end
     end
@@ -322,6 +323,7 @@ function gen_len_calc(
     if isodd(n_int)
         # Calculating the path length via a recurrence relation.
         path_length = net_len_calc!(path_lengths, n_int)
+        return path_length
     else
         # Returning nothing if there is an even number of intersections.
         # This suggests an error potentially from a sample outside the crystals or tangential intersection.
@@ -359,27 +361,27 @@ function sin_len_calc(
     d :: SVector{3, Float32}, 
     ps :: Vector{SVector{3, Float32}}, 
     dets :: Vector{Float32}, 
-    origin :: Vector{Float32}, 
-    v1s :: Vector{SVector{3, Float32}}, 
-    λs :: Vector{Float32}, 
-    path_lengths :: Vector{Float32}
-    )
+    origin :: SVector{3, Float32}, 
+    v1s :: Vector{SVector{3, Float32}}
+    )  :: Union{Float32, Nothing}
     # Iterating through all faces.
     @inbounds for j in 1:n_faces
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # Keeping only negative determinants, culling front-facing triangles as we are inside the mesh.
         det = dets[j]
-        if det < -1e-6
+        if det < -1f-6
+            # Pre-computing the inverse determinant.
+            inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
             q = cross(t, e2s[j])
             # Calculating the barycentric coordinates, (u,v), of the intersection.
-            u = (1 / det) * (dot(ps[j], t))
-            v = (1 / det) * (dot(q, d))
+            u = inv_det * (dot(ps[j], t))
+            v = inv_det * (dot(q, d))
             # Determining whether the intersection point lies within the triangle.
             if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
                 # Neutron's path described by r(λ) = origin + λd.
-                λ = (1 / det) * dot(q, e3s[j])
+                λ = inv_det * dot(q, e3s[j])
                 # Only accepting positive λ as this indicates paths moving in positive direction of d.
                 if λ > 0
                     # The path length is simply λ as the direction vector is normalised.
@@ -463,7 +465,7 @@ function int_calc(
     d :: SVector{3, Float32}, 
     ps :: Vector{SVector{3, Float32}}, 
     dets :: Vector{Float32}, 
-    origin :: Vector{Float32}, 
+    origin :: SVector{3, Float32}, 
     v1s :: Vector{SVector{3, Float32}},
     λs :: Vector{Float32}, 
     path_lengths :: Vector{Float32}
@@ -476,7 +478,8 @@ function int_calc(
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
         det = dets[j]
-        if abs(det) > 1e-6
+        if abs(det) > 1f-6
+            # Pre-computing the inverse determinant.
             inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
@@ -506,7 +509,7 @@ function int_calc(
     # Duplicate path lengths arise from paths near a vertex between faces.
     push!(path_lengths, λs[1])
     for i in λs
-        if abs(i - last(path_lengths)) > 1e-6
+        if abs(i - last(path_lengths)) > 1f-6
             push!(path_lengths, i)
         end
     end
@@ -529,11 +532,11 @@ max_coord (3-vector with float elements): Maximum value of each x, y and z coord
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-mc_coords (n_mc-vector of 3-vectors with float elements): Empty matrix of coordinates of sample points.
+coords (n_mc-vector of 3-vectors with float elements): Empty vector of coordinates of sample points.
 
 Returns
 -------
-mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 """
 
 function sampling!(
@@ -542,20 +545,19 @@ function sampling!(
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
     v1s :: Vector{SVector{3, Float32}}, 
-    mc_coords :: Matrix{Float32}
-    ) :: Matrix{Float32}
+    coords :: Vector{SVector{3, Float32}}
+    ) :: Vector{SVector{3, Float32}}
     # Pre-allocating the necessary vectors.
     λs = Vector{Float32}(undef, 10)
     path_lengths = Vector{Float32}(undef, 10)
     p = Vector{SVector{3, Float32}}(undef, n_faces)
     det = Vector{Float32}(undef, n_faces)
-    test = Vector{Float32}(undef, 3)
     # Pre-calculating uniform distribution describing the volume our crystal(s) lies in.
     x_range = Uniform(min_coord[1], max_coord[1])
     y_range = Uniform(min_coord[2], max_coord[2])
     z_range = Uniform(min_coord[3], max_coord[3])
     # Sending a dummy neutron along the x direction, starting at this test coordinate.
-    d = SVector{3, Float32}([1, 0, 0])
+    d = SVector{3, Float32}(-1, 0, 0)
     # Calculating p and det required for the MT algorithm.
     pdet_calc!(d, e2s, e3s, p, det)
     # Tallying the number of accepted coordinates.
@@ -566,20 +568,18 @@ function sampling!(
         x = rand(x_range)
         y = rand(y_range)
         z = rand(z_range)
-        test[1] = x
-        test[2] = y
-        test[3] = z
+        test = SVector{3, Float32}(x, y, z)
         # Calculating the number of intersections this theoretical neutron makes with the sample surfaces.
         n_int = int_calc(e2s, e3s, d, p, det, test, v1s, λs, path_lengths)
         # If it makes an even number of intersections, it is outside a sample.
         # Odd number of intersections means it began in a sample.
         if isodd(n_int)
             # Accepting this test coordinate.
-            mc_coords[n_acc + 1, :] = test
+            coords[n_acc + 1] = test
             n_acc += 1
         end
     end
-    return mc_coords
+    return coords
 end
 
 
@@ -589,7 +589,7 @@ end
 # Finding the maximum and minimum value of each coordinate.
 max_coord = [maximum(getindex.(vertices, 1)), maximum(getindex.(vertices, 2)), maximum(getindex.(vertices, 3))]
 min_coord = [minimum(getindex.(vertices, 1)), minimum(getindex.(vertices, 2)), minimum(getindex.(vertices, 3))]
-# Filling this matrix with the randomly generated sample points.
+# Filling this vector with the randomly generated sample points.
 sampling!(min_coord, max_coord, e2s, e3s, v1s, mc_coords)
 
 
@@ -607,16 +607,16 @@ path_lengths = Vector{Float32}(undef, 10)
 p_i = Vector{SVector{3, Float32}}(undef, n_faces)
 det_i = Vector{Float32}(undef, n_faces)
 # Calculating p and det required for the MT algorithm.
-p_i, det_i = pdet_calc!(di, e2s, e3s, p_i, det_i)
+pdet_calc!(di, e2s, e3s, p_i, det_i)
 len_i = Float32.(zeros(n_mc))
 # Iterating through the Monte Carlo sample points to find the pre-scattering path length of each.
 if complex
     for i in 1:n_mc
-        len_i[i] = gen_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i, :], v1s, λs, path_lengths)
+        len_i[i] = gen_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i], v1s, λs, path_lengths)
     end
 else
     for i in 1:n_mc
-        len_i[i] = sin_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i, :], v1s, λs, path_lengths)
+        len_i[i] = sin_len_calc(e2s, e3s, di, p_i, det_i, mc_coords[i], v1s)
     end
 end
 
@@ -634,7 +634,7 @@ en_f (float): Post-scattering energy of neutron, in meV.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 len_i (n_mc-vector of float elements): Pre-scattering path length of neutron, in units of .stl file.
 p_f (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
 det_f (n_faces-vector with float elements): Pre-allocated vector.
@@ -649,7 +649,7 @@ function atten_calc(
     v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
-    mc_coords :: Matrix{Float32}, 
+    coords :: Vector{SVector{3, Float32}}, 
     len_i :: Vector{Float32},
     p_f :: Vector{SVector{3, Float32}},
     det_f :: Vector{Float32}, 
@@ -659,14 +659,14 @@ function atten_calc(
     # Calculating the absorption cross section after the neutron scatters.
     axsf = axs_calc(en_f)
     # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
-    p_f, det_f = pdet_calc!(df, e2s, e3s, p_f, det_f)
+    pdet_calc!(df, e2s, e3s, p_f, det_f)
     # Tallying the number of accepted MC sample points where a path length could be calculated.
     acc_pts = 0
     atten = 0
     if complex
         @inbounds for i in 1:n_mc
             # Calculating the path length, len_f, at this sample point.
-            len_f = gen_len_calc(e2s, e3s, df, p_f, det_f, mc_coords[i, :], v1s, λs, path_lengths)
+            len_f = gen_len_calc(e2s, e3s, df, p_f, det_f, coords[i], v1s, λs, path_lengths)
             if typeof(len_f) == Float32
                 # Adding the attenuation factor contribution from this sample point to A.
                 atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
@@ -676,7 +676,7 @@ function atten_calc(
     else
         @inbounds for i in 1:n_mc
             # Calculating the path length, len_f, at this sample point.
-            len_f = sin_len_calc(e2s, e3s, df, p_f, det_f, mc_coords[i, :], v1s, λs, path_lengths)
+            len_f = sin_len_calc(e2s, e3s, df, p_f, det_f, coords[i], v1s)
             if typeof(len_f) == Float32
                 # Adding the attenuation factor contribution from this sample point to A.
                 atten += exp(-n * axsi * len_i[i]) * exp(-n * axsf * len_f)
@@ -711,7 +711,7 @@ ef_bins (n_bins-vector with float elements): Post-scattering neutron energy of e
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-mc_coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, in units of .stl file.
 
 Returns
@@ -727,7 +727,7 @@ function a_grid_calc(
     v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
-    mc_coords :: Matrix{Float32}, 
+    coords :: Vector{SVector{3, Float32}}, 
     len_i :: Vector{Float32}
     ) :: Matrix{Float32}
     atten_grid = zeros(Float32, n_bins, n_detectors)
@@ -742,10 +742,10 @@ function a_grid_calc(
     path_lengths = Vector{Float32}(undef, 10)
     # Skipping checks on array lengths using @inbounds.
     @inbounds for (i, j) in zip(idx[1], idx[2])
-        kf = SVector(kx[i, j], ky[i, j], kz[i, j])
+        kf = SVector{3, Float32}(kx[i, j], ky[i, j], kz[i, j])
         # Normalising the post-scattering direction vector.
         df = kf / norm(kf)
-        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, mc_coords, len_i, p_f, det_f, λs, path_lengths)
+        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, coords, len_i, p_f, det_f, λs, path_lengths)
     end
     return atten_grid
 end
