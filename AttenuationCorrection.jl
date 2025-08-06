@@ -270,7 +270,7 @@ function gen_len_calc(
     v1s :: Vector{SVector{3, Float32}},
     λs :: Vector{Float32}, 
     path_lengths :: Vector{Float32}
-    )
+    ) :: Union{Float32, Nothing}
     # Emptying the pre-allocated path length stores.
     empty!(λs)
     empty!(path_lengths)
@@ -279,7 +279,8 @@ function gen_len_calc(
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
         det = dets[j]
-        if abs(det) > 1e-6
+        if abs(det) > 1f-6
+            # Pre-computing the inverse determinant.
             inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
@@ -311,7 +312,7 @@ function gen_len_calc(
     # Duplicate path lengths arise from paths near a vertex between faces.
     push!(path_lengths, λs[1])
     for i in λs
-        if abs(i - last(path_lengths)) > 1e-3
+        if abs(i - last(path_lengths)) > 1f-6
             push!(path_lengths, i)
         end
     end
@@ -363,23 +364,25 @@ function sin_len_calc(
     v1s :: Vector{SVector{3, Float32}}, 
     λs :: Vector{Float32}, 
     path_lengths :: Vector{Float32}
-    )
+    )  :: Union{Float32, Nothing}
     # Iterating through all faces.
     @inbounds for j in 1:n_faces
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # Keeping only negative determinants, culling front-facing triangles as we are inside the mesh.
         det = dets[j]
-        if det < -1e-6
+        if det < -1f-6
+            # Pre-computing the inverse determinant.
+            inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
             q = cross(t, e2s[j])
             # Calculating the barycentric coordinates, (u,v), of the intersection.
-            u = (1 / det) * (dot(ps[j], t))
-            v = (1 / det) * (dot(q, d))
+            u = inv_det * (dot(ps[j], t))
+            v = inv_det * (dot(q, d))
             # Determining whether the intersection point lies within the triangle.
             if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
                 # Neutron's path described by r(λ) = origin + λd.
-                λ = (1 / det) * dot(q, e3s[j])
+                λ = inv_det * dot(q, e3s[j])
                 # Only accepting positive λ as this indicates paths moving in positive direction of d.
                 if λ > 0
                     # The path length is simply λ as the direction vector is normalised.
@@ -476,7 +479,8 @@ function int_calc(
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
         det = dets[j]
-        if abs(det) > 1e-6
+        if abs(det) > 1f-6
+            # Pre-computing the inverse determinant.
             inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
@@ -506,7 +510,7 @@ function int_calc(
     # Duplicate path lengths arise from paths near a vertex between faces.
     push!(path_lengths, λs[1])
     for i in λs
-        if abs(i - last(path_lengths)) > 1e-6
+        if abs(i - last(path_lengths)) > 1f-6
             push!(path_lengths, i)
         end
     end
@@ -607,7 +611,7 @@ path_lengths = Vector{Float32}(undef, 10)
 p_i = Vector{SVector{3, Float32}}(undef, n_faces)
 det_i = Vector{Float32}(undef, n_faces)
 # Calculating p and det required for the MT algorithm.
-p_i, det_i = pdet_calc!(di, e2s, e3s, p_i, det_i)
+pdet_calc!(di, e2s, e3s, p_i, det_i)
 len_i = Float32.(zeros(n_mc))
 # Iterating through the Monte Carlo sample points to find the pre-scattering path length of each.
 if complex
@@ -659,7 +663,7 @@ function atten_calc(
     # Calculating the absorption cross section after the neutron scatters.
     axsf = axs_calc(en_f)
     # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
-    p_f, det_f = pdet_calc!(df, e2s, e3s, p_f, det_f)
+    pdet_calc!(df, e2s, e3s, p_f, det_f)
     # Tallying the number of accepted MC sample points where a path length could be calculated.
     acc_pts = 0
     atten = 0
