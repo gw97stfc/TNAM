@@ -1,4 +1,5 @@
-module crystal
+# This module stores functions that aid in determining random coordinates within the sample.
+module sampling
 
 using Distributions
 using StaticArrays
@@ -27,7 +28,7 @@ Returns
 coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 """
 
-function sampling!(
+function sample!(
     ranges :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
@@ -202,7 +203,7 @@ Calculates V1, e2 = V2 - V1 and e3 = V3 - V1 for each face from the .stl file's 
 Parameters
 ----------
 vertices (n_vert-vector of 3-vectors with float elements): Vertices, in units of .stl file.
-indices (n_faces vector of 2-vectors with integer elements): Indices of the vertices that make up each face.
+indices (n_faces vector of 3-vectors with integer elements): Indices of the vertices that make up each face.
 
 Returns
 -------
@@ -243,7 +244,7 @@ y_range (uniform distribution of floats): Range of y, in units of .stl file.
 z_range (uniform distribution of floats): Range of z, in units of .stl file.
 
 """
-function aabb(vertices :: Vector{Point{3, Float32}}) :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}
+function aabb_3d(vertices :: Vector{Point{3, Float32}}) :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}
     # Finding the maximum and minimum value of each coordinate.
     max_coord = [maximum(getindex.(vertices, 1)), maximum(getindex.(vertices, 2)), maximum(getindex.(vertices, 3))]
     min_coord = [minimum(getindex.(vertices, 1)), minimum(getindex.(vertices, 2)), minimum(getindex.(vertices, 3))]
