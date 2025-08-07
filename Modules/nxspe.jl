@@ -7,6 +7,7 @@ using HDF5
 import PhysicalConstants.CODATA2018: m_n, e, ħ
 using Unitful
 using StaticArrays
+using SparseArrays
 
 
 # Defining a function to extract the useful parts of the .nxspe files.
@@ -133,5 +134,38 @@ function kf_calc(ef_bins :: Vector{Float32}, pol :: Vector{Float32}, azi :: Vect
     return kx, ky, kz
 end
 
+
+# Defining the function to correct the data/signal for absorption.
+
+
+"""
+Corrects the measured data by taking neutron absorption into consideration. The measured signal is divided by the corresponding attenuation factor.
+
+Parameters
+----------
+s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+s_atten (n_bins x n_detectors sparse matrix with float elements): Attenuation factor for different detectors and energy bins.
+n_bins (integer): Number of bins.
+n_detectors (integer): Number of detectors.
+
+Returns
+-------
+c_data (n_bins x n_detectors matrix with float elements): Corrected neutron signal at different detectors for different energy bins.
+"""
+function data_corr(
+    s_data :: SparseMatrixCSC{Float32, Int64}, 
+    s_atten :: SparseMatrixCSC{Float32, Int64}, 
+    n_bins :: Integer, 
+    n_detectors :: Integer
+    ) :: Matrix{Float32}
+    c_data = zeros(Float32, n_bins, n_detectors)
+    # Finding the indices (the energy bin and detector) at which we have a signal.
+    idx = findnz(s_data)
+    # Correcting each signal by dividing by the corresponding attenuation factor.
+    for (i, j, k) in zip(idx[1], idx[2], idx[3])
+        c_data[i, j] = k / s_atten[i, j]
+    end
+    return c_data
+end
 
 end

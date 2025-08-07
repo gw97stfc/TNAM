@@ -24,7 +24,7 @@ Returns
 -------
 μ (float): Attenuation coefficient in cm^-1.
 """
-function μ_calc(μ_ref, en_ref, en :: Float32) :: Float32
+function μ_calc(μ_ref :: Float32, en_ref :: Float32, en :: Float32) :: Float32
     return μ_ref * sqrt(en_ref / en)
 end
 

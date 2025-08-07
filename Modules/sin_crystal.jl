@@ -1,6 +1,11 @@
 # This module contains the key functions in the attenuation calculation for the single, convex crystal.
 module sin_crystal
 
+using StaticArrays
+using LinearAlgebra
+using LoopVectorization
+using SparseArrays
+
 
 # Defining the function that calculates the attenuation coefficent for the inputted energy.
 
@@ -18,9 +23,293 @@ Returns
 -------
 μ (float): Attenuation coefficient in cm^-1.
 """
-function μ_calc(μ_ref, en_ref, en :: Float32) :: Float32
+function μ_calc(μ_ref :: Float32, en_ref :: Float32, en :: Float32) :: Float32
     return μ_ref * sqrt(en_ref / en)
 end
 
+
+# Defining the function to determine the length of the paths the neutrons take within the sample.
+
+
+"""
+Calculates the distance between a given point in the sample (origin) and a triangular face of the mesh that describes the surface. 
+Iterates through each face to determine which one is intersected.
+Exploits the method described in 'Fast, Minimum Storage Ray-Triangle Intersection' by Moller and Trumbore.
+
+Parameters
+----------
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+d (3-vector with float elements): Normalised direction vector.
+ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
+dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+origin (3-vector with float elements): Coordinates of scattering sites.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+n_faces (integer): Number of faces.
+
+Returns
+-------
+path_length (float): Distance between origin and the surface the neutron path intersects, in units of the .stl file. nothing is outputted if there is no intersection.
+"""
+function len_calc(
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    d :: SVector{3, Float32}, 
+    ps :: Vector{SVector{3, Float32}}, 
+    dets :: Vector{Float32}, 
+    origin :: SVector{3, Float32}, 
+    v1s :: Vector{SVector{3, Float32}}, 
+    n_faces :: Integer
+    ) :: Union{Float32, Nothing}
+    # Iterating through all faces.
+    @inbounds for j in 1:n_faces
+        # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
+        # Keeping only negative determinants, culling front-facing triangles as we are inside the mesh.
+        det = dets[j]
+        if det < -1f-6
+            # Pre-computing the inverse determinant.
+            inv_det = 1 / det
+            # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
+            t = origin - v1s[j]
+            q = cross(t, e2s[j])
+            # Calculating the barycentric coordinates, (u,v), of the intersection.
+            u = inv_det * (dot(ps[j], t))
+            v = inv_det * (dot(q, d))
+            # Determining whether the intersection point lies within the triangle.
+            if v ≥ 0 && u ≥ 0 && (u + v) ≤ 1
+                # Neutron's path described by r(λ) = origin + λd.
+                λ = inv_det * dot(q, e3s[j])
+                # Only accepting positive λ as this indicates paths moving in positive direction of d.
+                if λ > 0
+                    # The path length is simply λ as the direction vector is normalised.
+                    return Float32(λ)
+                end
+            end
+        end
+    end
+    # Returning nothing if no path is intersected.
+    # Assuming the origin is within the sample, then this only occurs due to floating point precision errors.
+    # ie u+v = 1.00000001 > 1.
+    return nothing
+end
+
+
+# Defining the function that calculates the pre-scattering path lengths.
+
+
+"""
+Calculates the pre-scattering path lengths for each MC sampling point in the crystal.
+
+Parameters
+----------
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+n_faces (integer): Number of faces.
+n_mc (integer): Number of MC sample points.
+
+Returns
+-------
+len_i (n_mc - vector with float elements): Pre-scattering path lengths, in units of the .stl file.
+"""
+function len_i_calc(
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    v1s :: Vector{SVector{3, Float32}}, 
+    coords :: Vector{SVector{3, Float32}},  
+    n_faces :: Integer, 
+    n_mc :: Integer
+    ) :: Vector{Float32}
+    # Taking the pre-scattering direction vector to be anti-parallel to the x-direction.
+    di = SVector{3, Float32}(-1, 0, 0)
+    # Pre-allocating these vectors.
+    p_i = Vector{SVector{3, Float32}}(undef, n_faces)
+    det_i = Vector{Float32}(undef, n_faces)
+    # Calculating p and det required for the MT algorithm.
+    pdet_calc!(di, e2s, e3s, p_i, det_i, n_faces)
+    len_i = Float32.(zeros(n_mc))
+    # Iterating through the Monte Carlo sample points to find the pre-scattering path length of each.
+    for i in 1:n_mc
+        len_i[i] = len_calc(e2s, e3s, di, p_i, det_i, coords[i], v1s, n_faces)
+    end
+    return len_i
+end
+
+
+# Defining a function to pre-calculate p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT Algorithm.
+
+
+"""
+Calculates p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT Algorithm.
+
+Parameters
+----------
+d (3-vector with float elements): Normalised direction vector.
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+ps (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
+dets (n_faces-vector with float elements): Pre-allocated vector.
+n_faces (integer): Number of faces.
+
+Returns
+-------
+ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
+dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+"""
+function pdet_calc!(
+    d :: SVector{3, Float32}, 
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}},
+    ps :: Vector{SVector{3, Float32}},
+    dets :: Vector{Float32}, 
+    n_faces :: Integer
+    ) :: Tuple{Vector{SVector{3, Float32}}, Vector{Float32}}
+    # @inbounds is used to remove checks on the index i as we are sure of the sizes of our arrays.
+    # @simd is used to vectorize and speed up the loop.
+    @inbounds @simd for i in 1:n_faces
+        # Calculating cross products, p = d x e3, for the direction vector, d, and for each face.
+        ps[i] = cross(d, e3s[i])
+        # Calculating the determinant = p.e2 = (d x e3).e2 for the direction vector, d, and for each face.
+        dets[i] = dot(ps[i], e2s[i])
+    end
+    return ps, dets
+end
+
+
+# Defining the function that will calculate the attenuation factor given a certain energy bin and wavevector.
+
+
+"""
+Calculates the attenuation factor given a set initial and final energy and wavevector.
+
+Parameters
+----------
+df (3-vector with float elements): Normalised post-scattering neutron direction vector, in Angstrom^-1.
+en_f (float): Post-scattering energy of neutron, in meV.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+len_i (n_mc-vector of float elements): Pre-scattering path length of neutron, in units of .stl file.
+p_f (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
+det_f (n_faces-vector with float elements): Pre-allocated vector.
+n_faces (integer): Number of faces.
+n_mc (integer): Number of MC sample points.
+μ_ref (float): Attenuation coefficent at reference energy, in cm^-1.
+en_ref (float): Reference energy, in meV.
+μi (float): Pre-scattering attenuation coefficent, in cm^-1.
+
+Returns
+-------
+atten_calc (float): Attenuation factor.
+"""
+function atten_calc(
+    df :: SVector{3, Float32}, 
+    en_f :: Float32, 
+    v1s :: Vector{SVector{3, Float32}}, 
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    coords :: Vector{SVector{3, Float32}}, 
+    len_i :: Vector{Float32},
+    p_f :: Vector{SVector{3, Float32}},
+    det_f :: Vector{Float32}, 
+    n_faces :: Integer, 
+    n_mc :: Integer, 
+    μ_ref :: Float32, 
+    en_ref :: Float32, 
+    μi :: Float32
+    ) :: Float32
+    # Calculating the absorption cross section after the neutron scatters.
+    μf = μ_calc(μ_ref, en_ref, en_f)
+    # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
+    pdet_calc!(df, e2s, e3s, p_f, det_f, n_faces)
+    # Tallying the number of accepted MC sample points where a path length could be calculated.
+    acc_pts = 0
+    atten = 0
+    @inbounds for i in 1:n_mc
+        # Calculating the path length, len_f, at this sample point.
+        len_f = len_calc(e2s, e3s, df, p_f, det_f, coords[i], v1s, n_faces)
+        if typeof(len_f) == Float32
+            # Adding the attenuation factor contribution from this sample point to A.
+            atten += exp(-μi * len_i[i]) * exp(-μf * len_f)
+            acc_pts += 1
+        end
+    end
+    # Dividing by the total number of contributing sample points.
+    if acc_pts == 0
+        error("The path length could not be calculated for any sample point. Are they all within the sample?")
+    else
+        atten = atten / (acc_pts)
+        return atten
+    end
+end
+
+
+# Defining the function that calculates the grid of attenuation factors.
+
+
+"""
+Calculates the attenuation factor for every non-zero, non-NaN, signal and stores in a grid of detector against energy bin.
+
+Parameters
+----------
+s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+kx (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in x direction, in Angstrom^-1.
+ky (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in y direction, in Angstrom^-1.
+kz (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in z direction, in Angstrom^-1.
+en_i (float): Pre-scattering neutron energy, in meV.
+ef_bins (n_bins-vector with float elements): Post-scattering neutron energy of each bin, in meV.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, in units of .stl file.
+n_bins (integer): Number of bins.
+n_detectors (integer): Number of detectors.
+n_faces (integer): Number of faces.
+n_mc (integer): Number of MC sample points.
+μ_ref (float): Attenuation coefficent at reference energy, in cm^-1.
+en_ref (float): Reference energy, in meV.
+μi (float): Pre-scattering attenuation coefficent, in cm^-1.
+
+Returns
+-------
+atten_grid (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
+"""
+function a_grid_calc(
+    s_data :: SparseMatrixCSC{Float32, Int64}, 
+    kx :: AbstractMatrix{Float32}, 
+    ky :: AbstractMatrix{Float32}, 
+    kz :: AbstractMatrix{Float32}, 
+    ef_bins :: Vector{Float32}, 
+    v1s :: Vector{SVector{3, Float32}}, 
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    coords :: Vector{SVector{3, Float32}}, 
+    len_i :: Vector{Float32}, 
+    n_bins :: Integer, 
+    n_detectors :: Integer, 
+    n_faces :: Integer, 
+    n_mc :: Integer, 
+    μ_ref :: Float32, 
+    en_ref :: Float32, 
+    μi :: Float32
+    ) :: Matrix{Float32}
+    atten_grid = zeros(Float32, n_bins, n_detectors)
+    # Determining the locations in which the signal is either NaN or 0 as we don't want to calculate atten there.
+    idx = findnz(s_data)
+    # Pre-allocating the vectors needed for the MT algorithm.
+    p_f = Vector{SVector{3, Float32}}(undef, n_faces)
+    det_f = Vector{Float32}(undef, n_faces)
+    # Skipping checks on array lengths using @inbounds.
+    @inbounds for (i, j) in zip(idx[1], idx[2])
+        kf = SVector{3, Float32}(kx[i, j], ky[i, j], kz[i, j])
+        # Normalising the post-scattering direction vector.
+        df = kf / norm(kf)
+        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, coords, len_i, p_f, det_f, n_faces, n_mc, μ_ref, en_ref, μi)
+    end
+    return atten_grid
+end
 
 end
