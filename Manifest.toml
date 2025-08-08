@@ -2,7 +2,7 @@
 
 julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "9c31e0c3b3b69e93c9b098b1e0c40a1c817d5b5d"
+project_hash = "101aa74c8dba9fda4ea50e0befc48fb8119b6721"
 
 [[deps.Accessors]]
 deps = ["CompositionsBase", "ConstructionBase", "Dates", "InverseFunctions", "MacroTools"]
@@ -112,11 +112,6 @@ deps = ["LinearAlgebra"]
 git-tree-sha1 = "9cb23bbb1127eefb022b022481466c0f1127d430"
 uuid = "49dc2e85-a5d0-5ad3-a950-438e2897f1b9"
 version = "0.5.2"
-
-[[deps.CancellationTokens]]
-git-tree-sha1 = "eacd96906188a977d9cd4b00c48552cdd46e5f47"
-uuid = "2e8d271d-f2e2-407b-a864-17eb2156783e"
-version = "1.0.0"
 
 [[deps.CloseOpenIntervals]]
 deps = ["Static", "StaticArrayInterface"]
@@ -367,12 +362,6 @@ deps = ["Dates", "Mmap", "Parsers", "Unicode"]
 git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.4"
-
-[[deps.JSONRPC]]
-deps = ["CancellationTokens", "JSON", "UUIDs"]
-git-tree-sha1 = "bf7422b4a8e1fe7d9af9379acf984a409f7a9bcf"
-uuid = "b9b8584e-8fd3-41f9-ad0c-7255d428e418"
-version = "2.0.1"
 
 [[deps.LayoutPointers]]
 deps = ["ArrayInterface", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static", "StaticArrayInterface"]
