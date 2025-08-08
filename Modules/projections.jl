@@ -5,6 +5,7 @@ module projections
 using GeometryBasics
 using StaticArrays
 using Distributions
+using SparseArrays
 
 
 # Defining a function to rotate the sample about the z-axis.
@@ -167,6 +168,43 @@ function area_calc(
     return area
 end
 
+
+# Defining a function to correct the measured data by taking into consideration the neutron flux it received.
+
+"""
+Corrects the measured data by taking into consideration the neutron flux the sample received considering the sample angle, ψ, of the .nxspe file.
+Accomplishes this by dividing by the area of the sample projected onto the y-z plane.
+
+Parameters
+----------
+s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+r_vertices (vector with 3-vector elements with float elements): Vertices of sample (pre-rotated as needed for this .nxspe file), in units of .stl file.
+indices (n_faces vector of 3-vectors with integer elements): Indices of the vertices that make up each face.
+n_faces (integer): Number of faces.
+n_tot (integer): Total number of random coordinates used in MC calculation of area.
+
+Returns
+-------
+c_data (n_bins x n_detectors matrix with float elements): Corrected neutron signal measured at different detectors for different energy bins.
+"""
+function flux_corr(
+    s_data :: SparseMatrixCSC{Float32, Int64}, 
+    r_vertices :: Vector{Point{3, Float32}}, 
+    indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}, 
+    n_faces :: Integer, 
+    n_tot :: Integer
+    ) :: SparseMatrixCSC{Float32, Int64}
+    # Projecting the sample onto the y-z plane (the plane perpendicular to the neutron beam).
+    # Grouping these projected vertices by the triangles they create.
+    p_vertices, p_triangles = project(r_vertices, indices, n_faces)
+    # Finding the maximum and minimum value of each projected coordinate.
+    min_coord, max_coord, rec_area = aabb_2d(p_vertices)
+    # Calculating the area of the sample projection.
+    area = area_calc(min_coord, max_coord, p_triangles, n_tot, n_faces, rec_area)
+    # Scaling each signal via the projection area.
+    c_data = s_data / area
+    return c_data
+end
 
 
 end

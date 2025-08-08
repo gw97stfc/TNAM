@@ -1,4 +1,3 @@
-# This file shall test the path length calculations for both single and general crystals.
 using TestItemRunner
 @run_package_tests
 
@@ -271,5 +270,273 @@ end
         # Testing if the path length is the radius, 1, plus this factor.
         len = sin_crystal.len_calc(e2s, e3s, d_test, p_test, det_test, test, v1s, n_faces)
         @test isapprox(len, (1 + factor), atol=1f-2)
+    end
+end
+
+
+# Testing if the path length changes accordingly as the scattering site is moved.
+@testitem "Path Length Variation with Origin - General Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    using .gen_crystal
+    # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    vertices = GeometryBasics.coordinates(stl)
+    indices = GeometryBasics.faces(stl)
+    # Extracting the number of triangular faces used in the mesh.
+    n_faces = length(indices)
+    # Calculating v1s, e2s, e3s needed for the MT algorithm.
+    v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+    for i in 1:1000
+        # Pre-allocating path length stores.
+        λs = Vector{Float32}(undef, 10)
+        path_lengths = Vector{Float32}(undef, 10)
+        # Setting the centre of the sphere.
+        centre = SVector{3, Float32}(0, 0, 0)
+        # Generating a random direction vector.
+        d_test = SVector{3, Float32}(randn(3))
+        d_test = d_test / norm(d_test)
+        # Offsetting the origin by a random amount in the opposite direction to d_test.
+        # As rand() ϵ [0, 1), d_test is normalised and the sphere is radius 1, origin should always lie within the sample.
+        factor = rand()
+        test = SVector{3, Float32}(centre - (factor * d_test))
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        gen_crystal.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Testing if the path length is the radius, 1, plus this factor.
+        len = gen_crystal.len_calc(e2s, e3s, d_test, p_test, det_test, test, v1s, λs, path_lengths, n_faces)
+        @test isapprox(len, (1 + factor), atol=1f-2)
+    end
+end
+
+
+# Testing if the attenuation increases with the post-scattering neutron energy.
+@testitem "Attenuation Variation with Energy - Single Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    using .sin_crystal
+    # Writing in a let block to allow for the local variable prev_atten.
+    let
+        # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+        stl = load(joinpath(@__DIR__, "..", "crystal.stl"))
+        vertices = GeometryBasics.coordinates(stl)
+        indices = GeometryBasics.faces(stl)
+        # Extracting the number of triangular faces used in the mesh.
+        n_faces = length(indices)
+        # Calculating v1s, e2s, e3s needed for the MT algorithm.
+        v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+        # The reference attenuation coefficent at 25.3 meV in cm^-1.
+        μ_ref = Float32(1)
+        en_ref = Float32(25.3)
+        # Setting initial attenuation coefficient in cm^-1.
+        μi = Float32(2)
+        # Determining the random coordinates within the sample.
+        n_mc = 100
+        mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+        ranges = sampling.aabb_3d(vertices)
+        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+        # Generating random direction vector.
+        d_test = SVector{3, Float32}(randn(3))
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        sin_crystal.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Creating fake vector of initial lengths.
+        len_i = Float32.(ones(n_mc))
+        # Storing the previous attenuation factor.
+        prev_atten = 0
+        for i in 1:10
+            # Iterating through increasing final energies.
+            en_test = Float32(i)
+            # Calculating the attenuation factor for each different energy.
+            attenuation = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+            # Checking if the attenuation factor has increased with this increased energy.
+            @test attenuation > prev_atten
+            # Assigning this attenuation factor to the previous attenuation factor.
+            prev_atten = attenuation
+        end
+    end
+end
+
+
+# Testing if the attenuation increases with the post-scattering neutron energy.
+@testitem "Attenuation Variation with Energy - General Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    using .gen_crystal
+    # Writing in a let block to allow for the local variable prev_atten.
+    let
+        # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+        stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "7_Icospheres320.stl"))
+        vertices = GeometryBasics.coordinates(stl)
+        indices = GeometryBasics.faces(stl)
+        # Extracting the number of triangular faces used in the mesh.
+        n_faces = length(indices)
+        # Calculating v1s, e2s, e3s needed for the MT algorithm.
+        v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+        # The reference attenuation coefficent at 25.3 meV in cm^-1.
+        μ_ref = Float32(1)
+        en_ref = Float32(25.3)
+        # Setting initial attenuation coefficient in cm^-1.
+        μi = Float32(2)
+        # Determining the random coordinates within the sample.
+        n_mc = 100
+        mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+        ranges = sampling.aabb_3d(vertices)
+        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+        # Generating random direction vector.
+        d_test = SVector{3, Float32}(randn(3))
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        gen_crystal.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Creating fake vector of initial lengths.
+        len_i = Float32.(ones(n_mc))
+        # Pre-allocating path length stores.
+        λs = Vector{Float32}(undef, 10)
+        path_lengths = Vector{Float32}(undef, 10)
+        # Storing the previous attenuation factor.
+        prev_atten = 0
+        for i in 1:10
+            # Iterating through increasing final energies.
+            en_test = Float32(i)
+            # Calculating the attenuation factor for each different energy.
+            attenuation = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+            # Checking if the attenuation factor has increased with this increased energy.
+            @test attenuation > prev_atten
+            # Assigning this attenuation factor to the previous attenuation factor.
+            prev_atten = attenuation
+        end
+    end
+end
+
+
+# Testing if the attenuation increases with decreasing path length.
+@testitem "Attenuation Variation with Path Length - Single Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    using .sin_crystal
+    # Writing in a let block to allow for the local variable prev_atten.
+    let
+        # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+        stl = load(joinpath(@__DIR__, "..", "crystal.stl"))
+        vertices = GeometryBasics.coordinates(stl)
+        indices = GeometryBasics.faces(stl)
+        # Extracting the number of triangular faces used in the mesh.
+        n_faces = length(indices)
+        # Calculating v1s, e2s, e3s needed for the MT algorithm.
+        v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+        # The reference attenuation coefficent at 25.3 meV in cm^-1.
+        μ_ref = Float32(1)
+        en_ref = Float32(25.3)
+        # Setting initial attenuation coefficient in cm^-1.
+        μi = Float32(2)
+        # Determining the random coordinates within the sample.
+        n_mc = 100
+        mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+        ranges = sampling.aabb_3d(vertices)
+        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+        # Generating random direction vector.
+        d_test = SVector{3, Float32}(randn(3))
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        sin_crystal.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Creating fake final energy.
+        en_test = 1f0
+        # Storing the previous attenuation factor.
+        prev_atten = 0
+        for i in 1:10
+            # Iterating through decreasing initial path lengths.
+            len_i = Float32.((10 - i) * ones(n_mc))
+            # Calculating the attenuation factor for each different energy.
+            attenuation = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+            # Checking if the attenuation factor has increased with this increased energy.
+            @test attenuation > prev_atten
+            # Assigning this attenuation factor to the previous attenuation factor.
+            prev_atten = attenuation
+        end
+    end
+end
+
+
+# Testing if the attenuation increases with decreasing path length.
+@testitem "Attenuation Variation with Path Length - General Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    using .gen_crystal
+    # Writing in a let block to allow for the local variable prev_atten.
+    let
+        # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+        stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "7_Icospheres320.stl"))
+        vertices = GeometryBasics.coordinates(stl)
+        indices = GeometryBasics.faces(stl)
+        # Extracting the number of triangular faces used in the mesh.
+        n_faces = length(indices)
+        # Calculating v1s, e2s, e3s needed for the MT algorithm.
+        v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+        # The reference attenuation coefficent at 25.3 meV in cm^-1.
+        μ_ref = Float32(1)
+        en_ref = Float32(25.3)
+        # Setting initial attenuation coefficient in cm^-1.
+        μi = Float32(2)
+        # Determining the random coordinates within the sample.
+        n_mc = 100
+        mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+        ranges = sampling.aabb_3d(vertices)
+        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+        # Generating random direction vector.
+        d_test = SVector{3, Float32}(randn(3))
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        gen_crystal.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Creating fake final energy.
+        en_test = 1f0
+        # Pre-allocating path length stores.
+        λs = Vector{Float32}(undef, 10)
+        path_lengths = Vector{Float32}(undef, 10)
+        # Storing the previous attenuation factor.
+        prev_atten = 0
+        for i in 1:10
+            # Iterating through decreasing initial path lengths.
+            len_i = Float32.((10 - i) * ones(n_mc))
+            # Calculating the attenuation factor for each different energy.
+            attenuation = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+            # Checking if the attenuation factor has increased with this increased energy.
+            @test attenuation > prev_atten
+            # Assigning this attenuation factor to the previous attenuation factor.
+            prev_atten = attenuation
+        end
     end
 end

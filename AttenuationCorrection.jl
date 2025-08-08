@@ -134,7 +134,7 @@ println("The attenuation factor at this test point was $(s_atten[160, 6])")
 # Calculating the corrected data/signal by dividing each measured signal by the corresponding attenuation factor.
 
 
-c_data = nxspe.data_corr(s_data, s_atten, n_bins, n_detectors)
+c_data = nxspe.abs_corr(s_data, s_atten, n_bins, n_detectors)
 # Converting this corrected data into a sparse matrix.
 s_c_data = sparse(c_data)
 # Testing the same (known to be non-zero) datapoint.
