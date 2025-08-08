@@ -152,7 +152,7 @@ Returns
 -------
 c_data (n_bins x n_detectors matrix with float elements): Corrected neutron signal at different detectors for different energy bins.
 """
-function data_corr(
+function abs_corr(
     s_data :: SparseMatrixCSC{Float32, Int64}, 
     s_atten :: SparseMatrixCSC{Float32, Int64}, 
     n_bins :: Integer, 
