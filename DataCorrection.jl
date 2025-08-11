@@ -5,6 +5,7 @@ using LinearAlgebra
 using MeshIO
 using StaticArrays
 using Base.Threads
+using BenchmarkTools
 include("Modules/nxspe.jl")
 using .nxspe
 include("Modules/sampling.jl")
@@ -65,22 +66,31 @@ function correct(
     n_files = length(nxspes)
     # Creating the store of corrected data.
     c_data = Vector{Matrix{Float32}}(undef, n_files)
+    # Pre-allocating the vectors to store contents of .nxspe files.
+    en_i = Vector{Float32}(undef, n_files)
+    azi = Vector{Vector{Float32}}(undef, n_files)
+    pol = Vector{Vector{Float32}}(undef, n_files)
+    data = Vector{Matrix{Float32}}(undef, n_files)
+    Δen = Vector{Vector{Float32}}(undef, n_files)
+    # Pre-extracting the contents of each .nxspe file.
+    for j in 1:n_files
+        en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(nxspes[j])
+    end
     # Parallelising the program to correct multiple files at once.
-    @threads for i in 1:n_files
-        # Extracting the contents of the .nxspe file.
-        en_i, azi, pol, data, Δen = nxspe.extract(nxspes[i])
+    #@threads for i in 1:n_files
+    for i in 1:n_files
         # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
         ki = zeros(3)
-        ki[1] = nxspe.magk_calc(en_i)
+        ki[1] = nxspe.magk_calc(en_i[i])
         # Converting ki to a static array.
         ki = SVector{3, Float32}(ki)
         # Extracting the number of energy bins and number of detectors.
-        n_bins = length(Δen) - 1
-        n_detectors = length(azi)
+        n_bins = length(Δen[i]) - 1
+        n_detectors = length(azi[i])
         # Calculating the final neutron energy, in meV, for each energy bin.
-        ef_bins = nxspe.ef_calc(en_i, Δen, n_bins)
+        ef_bins = nxspe.ef_calc(en_i[i], Δen[i], n_bins)
         # Calculating the final wavevector, in Angstrom^-1, for each energy bin and each detector.
-        kx, ky, kz = nxspe.kf_calc(ef_bins, pol, azi)
+        kx, ky, kz = nxspe.kf_calc(ef_bins, pol[i], azi[i])
         # Rotating the sample to the orientation of this specific file.
         # Assumes the .stl file describes the sample at 0 degrees.
         # Assumes ψ is anti-clockwise rotation angle.
@@ -93,14 +103,14 @@ function correct(
         ranges = sampling.aabb_3d(vertices)
         sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
-        μi = crystal.μ_calc(μ_ref, en_ref, en_i)
+        μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
         # The pre-scattering neutron path lengths are dependent only on the MC coordinates.
         # They can, therefore, be calculated and stored.
         len_i = crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_abs)
         # Calculating this grid of attenuation factors.
-        atten_grid = crystal.a_grid_calc(data, kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        atten_grid = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
         # Correcting the data for absorption.
-        ca_data = nxspe.abs_corr(data, atten_grid)
+        ca_data = nxspe.abs_corr(data[i], atten_grid)
         # Correcting the (absorption-corrected) data for varying flux.
         cf_ca_data = projections.flux_corr(ca_data, r_vertices, indices, n_faces, n_flux)
         # Adding this corrected data to the vector containing that for all files.
@@ -109,4 +119,8 @@ function correct(
     return c_data
 end
 
-c_data = correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe"], [0f0], "crystal.stl", false, 1f0, 25.3f0, 500, 10000)
+c_data = correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe", "test_nxspe_data/LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 5, 10000)
+
+#@benchmark correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe", "test_nxspe_data/LET104216_3.7meV_1to1.nxspe", "test_nxspe_data/LET104217_3.7meV_1to1.nxspe", "test_nxspe_data/LET104218_3.7meV_1to1.nxspe", "test_nxspe_data/LET104219_3.7meV_1to1.nxspe", "test_nxspe_data/LET104220_3.7meV_1to1.nxspe", "test_nxspe_data/LET104221_3.7meV_1to1.nxspe", "test_nxspe_data/LET104222_3.7meV_1to1.nxspe", "test_nxspe_data/LET104223_3.7meV_1to1.nxspe", "test_nxspe_data/LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
+
+#@benchmark correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe", "test_nxspe_data/LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 1, 10000)
