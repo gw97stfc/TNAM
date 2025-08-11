@@ -76,6 +76,7 @@ end
 
 
 # Testing that a significant proportion of path lengths are calculated (as opposed to outputting nothing).
+# Non-1 outputs arise due to floating point precision errors in duplicate sorting.
 @testitem "Sufficient Output Test - Single Crystal" begin
     using FileIO
     using GeometryBasics
@@ -126,6 +127,7 @@ end
 
 
 # Testing that a significant proportion of path lengths are calculated (as opposed to outputting nothing).
+# Non-1 outputs arise due to floating point precision errors in duplicate sorting.
 @testitem "Sufficient Output Test - General Crystal" begin
     using FileIO
     using GeometryBasics
@@ -179,6 +181,8 @@ end
 
 
 # Testing if the outputs from the single and general crystal programs match.
+# Trivial errors arise due to 'nothing' printed in some cases.
+# Non-trivial errors arise due to small (perceived?) concave areas leading to an extra addition to the path length.
 @testitem "Single and General Crystal Program Equivalence" begin
     using FileIO
     using GeometryBasics

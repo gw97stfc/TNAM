@@ -12,7 +12,7 @@ using SparseArrays
 
 
 """
-Rotates the sample by θ degrees. This is accomplished by mutating each vertex.
+Rotates the sample by θ degrees anti-clockwise. This is accomplished by mutating each vertex.
 
 Parameters
 ----------
@@ -21,18 +21,20 @@ vertices (vector with 3-vector elements with float elements): Vertices of sample
 
 Returns
 -------
-vertices (vector with 3-vector elements with float elements): Rotated vertices of sample, in units of .stl file.
+r_vertices (vector with 3-vector elements with float elements): Rotated vertices of sample, in units of .stl file.
 """
-function rotate!(θ :: Float32, vertices :: Vector{Point{3, Float32}}) :: Vector{Point{3, Float32}}
+function rotate(θ :: Float32, vertices :: Vector{Point{3, Float32}}) :: Vector{Point{3, Float32}}
+    # Creating rotated vertices vector.
+    r_vertices = Vector{Point{3, Float32}}(undef, length(vertices))
     # Converting the angle to radians.
     θ = deg2rad(θ)
     # Calculating rotation matrix.
     R_z = Matrix{Float32}([[cos(θ), -sin(θ), 0] [sin(θ), cos(θ), 0] [0, 0, 1]])
     # Applying rotation matrix to each vertex.
     @inbounds for i in 1:length(vertices)
-        vertices[i] = R_z * vertices[i]
+        r_vertices[i] = R_z * vertices[i]
     end
-    return vertices
+    return r_vertices
 end
 
 
@@ -177,7 +179,7 @@ Accomplishes this by dividing by the area of the sample projected onto the y-z p
 
 Parameters
 ----------
-s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+s_data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
 r_vertices (vector with 3-vector elements with float elements): Vertices of sample (pre-rotated as needed for this .nxspe file), in units of .stl file.
 indices (n_faces vector of 3-vectors with integer elements): Indices of the vertices that make up each face.
 n_faces (integer): Number of faces.
@@ -188,12 +190,12 @@ Returns
 c_data (n_bins x n_detectors matrix with float elements): Corrected neutron signal measured at different detectors for different energy bins.
 """
 function flux_corr(
-    s_data :: SparseMatrixCSC{Float32, Int64}, 
+    data :: Matrix{Float32}, 
     r_vertices :: Vector{Point{3, Float32}}, 
     indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}, 
     n_faces :: Integer, 
     n_tot :: Integer
-    ) :: SparseMatrixCSC{Float32, Int64}
+    ) :: Matrix{Float32}
     # Projecting the sample onto the y-z plane (the plane perpendicular to the neutron beam).
     # Grouping these projected vertices by the triangles they create.
     p_vertices, p_triangles = project(r_vertices, indices, n_faces)
@@ -202,7 +204,7 @@ function flux_corr(
     # Calculating the area of the sample projection.
     area = area_calc(min_coord, max_coord, p_triangles, n_tot, n_faces, rec_area)
     # Scaling each signal via the projection area.
-    c_data = s_data / area
+    c_data = data / area
     return c_data
 end
 

@@ -319,7 +319,7 @@ Calculates the attenuation factor for every non-zero, non-NaN, signal and stores
 
 Parameters
 ----------
-s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
 kx (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in x direction, in Angstrom^-1.
 ky (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in y direction, in Angstrom^-1.
 kz (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in z direction, in Angstrom^-1.
@@ -343,7 +343,7 @@ Returns
 atten_grid (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
 """
 function a_grid_calc(
-    s_data :: SparseMatrixCSC{Float32, Int64}, 
+    data :: Matrix{Float32}, 
     kx :: AbstractMatrix{Float32}, 
     ky :: AbstractMatrix{Float32}, 
     kz :: AbstractMatrix{Float32}, 
@@ -363,7 +363,7 @@ function a_grid_calc(
     ) :: Matrix{Float32}
     atten_grid = zeros(Float32, n_bins, n_detectors)
     # Determining the locations in which the signal is either NaN or 0 as we don't want to calculate atten there.
-    idx = findnz(s_data)
+    idx = findall(.~((data .== 0) .| (isnan.(data))))
     # Pre-allocating the vectors needed for the MT algorithm.
     p_f = Vector{SVector{3, Float32}}(undef, n_faces)
     det_f = Vector{Float32}(undef, n_faces)
@@ -372,11 +372,11 @@ function a_grid_calc(
     λs = Vector{Float32}(undef, 10)
     path_lengths = Vector{Float32}(undef, 10)
     # Skipping checks on array lengths using @inbounds.
-    @inbounds for (i, j) in zip(idx[1], idx[2])
-        kf = SVector{3, Float32}(kx[i, j], ky[i, j], kz[i, j])
+    @inbounds for I in idx
+        kf = SVector{3, Float32}(kx[I], ky[I], kz[I])
         # Normalising the post-scattering direction vector.
         df = kf / norm(kf)
-        atten_grid[i, j] = atten_calc(df, ef_bins[i], v1s, e2s, e3s, coords, len_i, p_f, det_f, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+        atten_grid[I] = atten_calc(df, ef_bins[I[1]], v1s, e2s, e3s, coords, len_i, p_f, det_f, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
     end
     return atten_grid
 end
