@@ -76,6 +76,7 @@ end
 
 
 # Testing that a significant proportion of path lengths are calculated (as opposed to outputting nothing).
+# Non-1 outputs arise due to floating point precision errors in duplicate sorting.
 @testitem "Sufficient Output Test - Single Crystal" begin
     using FileIO
     using GeometryBasics
@@ -126,6 +127,7 @@ end
 
 
 # Testing that a significant proportion of path lengths are calculated (as opposed to outputting nothing).
+# Non-1 outputs arise due to floating point precision errors in duplicate sorting.
 @testitem "Sufficient Output Test - General Crystal" begin
     using FileIO
     using GeometryBasics
@@ -179,7 +181,9 @@ end
 
 
 # Testing if the outputs from the single and general crystal programs match.
-@testitem "Single and General Crystal Program Equivalence" begin
+# Trivial errors arise due to 'nothing' printed in some cases.
+# Non-trivial errors arise due to small (perceived?) concave areas leading to an extra addition to the path length.
+@testitem "Program Equivalence for Path Lengths" begin
     using FileIO
     using GeometryBasics
     include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
@@ -193,6 +197,8 @@ end
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
     stl = FileIO.load(joinpath(@__DIR__, "..", "crystal.stl"))
     vertices = GeometryBasics.coordinates(stl)
+    # Converting the vertices into cm.
+    vertices = vertices / 10
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
     n_faces = length(indices)
@@ -538,5 +544,63 @@ end
             # Assigning this attenuation factor to the previous attenuation factor.
             prev_atten = attenuation
         end
+    end
+end
+
+
+# Testing if the attenuation factor calculated by the general and single crystal programs is equal.
+@testitem "Program Equivalence for Attenuation Factors" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    using .gen_crystal
+    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    using .sin_crystal
+    # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+    stl = FileIO.load(joinpath(@__DIR__, "..", "crystal.stl"))
+    vertices = GeometryBasics.coordinates(stl)
+    # Converting the vertices into cm.
+    vertices = vertices / 10
+    indices = GeometryBasics.faces(stl)
+    # Extracting the number of triangular faces used in the mesh.
+    n_faces = length(indices)
+    # Calculating v1s, e2s, e3s needed for the MT algorithm.
+    v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+    # Determining the random coordinates within the sample.
+    n_mc = 1000
+    mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+    ranges = sampling.aabb_3d(vertices)
+    sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    # The reference attenuation coefficent at 25.3 meV in cm^-1.
+    μ_ref = Float32(1)
+    en_ref = Float32(25.3)
+    # Setting initial attenuation coefficient in cm^-1.
+    μi = Float32(2)
+    # Calculating the initial path lengths.
+    sin_len_i = sin_crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    gen_len_i = gen_crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    # Setting a fake final energy.
+    en_test = 1f0
+    for i in 1:10
+        # Pre-allocating path length stores.
+        λs = Vector{Float32}(undef, 10)
+        path_lengths = Vector{Float32}(undef, 10)
+        # Generating a random direction vector.
+        d_test = SVector{3, Float32}(randn(3))
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        sampling.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Calculating the attenuation factors using each program.
+        sin_atten = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, sin_len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+        gen_atten = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, gen_len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+        @test isapprox(sin_atten, gen_atten, atol=1f-2)
+        display(sin_atten)
+        display(gen_atten)
     end
 end

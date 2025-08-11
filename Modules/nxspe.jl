@@ -143,27 +143,24 @@ Corrects the measured data by taking neutron absorption into consideration. The 
 
 Parameters
 ----------
-s_data (n_bins x n_detectors sparse matrix with float elements): Neutron signal measured at different detectors for different energy bins.
-s_atten (n_bins x n_detectors sparse matrix with float elements): Attenuation factor for different detectors and energy bins.
-n_bins (integer): Number of bins.
-n_detectors (integer): Number of detectors.
+s_data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+s_atten (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
 
 Returns
 -------
 c_data (n_bins x n_detectors matrix with float elements): Corrected neutron signal at different detectors for different energy bins.
 """
 function abs_corr(
-    s_data :: SparseMatrixCSC{Float32, Int64}, 
-    s_atten :: SparseMatrixCSC{Float32, Int64}, 
-    n_bins :: Integer, 
-    n_detectors :: Integer
+    data :: Matrix{Float32}, 
+    atten :: Matrix{Float32}
     ) :: Matrix{Float32}
-    c_data = zeros(Float32, n_bins, n_detectors)
+    # Copying the data to keep information as to location of NaN versus 0.
+    c_data = copy(data)
     # Finding the indices (the energy bin and detector) at which we have a signal.
-    idx = findnz(s_data)
+    idx = findall(.~((data .== 0) .| (isnan.(data))))
     # Correcting each signal by dividing by the corresponding attenuation factor.
-    for (i, j, k) in zip(idx[1], idx[2], idx[3])
-        c_data[i, j] = k / s_atten[i, j]
+    for I in idx
+        c_data[I] = c_data[I] / atten[I]
     end
     return c_data
 end
