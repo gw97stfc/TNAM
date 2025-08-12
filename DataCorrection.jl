@@ -130,9 +130,9 @@ function correct(
 end
 
 
-#c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 10, 10000)
+#c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 100, 10000)
 #@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
 
-@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
+#@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
 #c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
 
