@@ -7,68 +7,6 @@ using LinearAlgebra
 using GeometryBasics
 
 
-# Defining a function to generate the desired number of MC sample points.
-
-
-"""
-Generates the required number of MC sample points.
-
-Parameters
-----------
-ranges (3-tuple of uniform distributions of floats): Extrema of the AABB, in units of the .stl file.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-coords (n_mc-vector of 3-vectors with float elements): Empty vector of coordinates of sample points.
-n_faces (integer): Number of faces of .stl file.
-n_mc (integer) : Number of sample points required.
-
-Returns
--------
-coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
-"""
-
-function sample!(
-    ranges :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}, 
-    e2s :: Vector{SVector{3, Float32}}, 
-    e3s :: Vector{SVector{3, Float32}}, 
-    v1s :: Vector{SVector{3, Float32}}, 
-    coords :: Vector{SVector{3, Float32}},
-    n_faces :: Integer,
-    n_mc :: Integer
-    ) :: Vector{SVector{3, Float32}}
-    # Pre-allocating the necessary vectors.
-    λs = Vector{Float32}(undef, 10)
-    path_lengths = Vector{Float32}(undef, 10)
-    p = Vector{SVector{3, Float32}}(undef, n_faces)
-    det = Vector{Float32}(undef, n_faces)
-    # Sending a dummy neutron along the x direction, starting at this test coordinate.
-    d = SVector{3, Float32}(-1, 0, 0)
-    # Calculating p and det required for the MT algorithm.
-    pdet_calc!(d, e2s, e3s, p, det, n_faces)
-    # Tallying the number of accepted coordinates.
-    n_acc = 0
-    # Continuing this sample generation until there are n_mc coordinates inside the crytal(s).
-    while n_acc < n_mc
-        # Generating a random coordinate within the pre-defined sample range.
-        x = rand(ranges[1])
-        y = rand(ranges[2])
-        z = rand(ranges[3])
-        test = SVector{3, Float32}(x, y, z)
-        # Calculating the number of intersections this theoretical neutron makes with the sample surfaces.
-        n_int = int_calc(e2s, e3s, d, p, det, test, v1s, λs, path_lengths, n_faces)
-        # If it makes an even number of intersections, it is outside a sample.
-        # Odd number of intersections means it began in a sample.
-        if isodd(n_int)
-            # Accepting this test coordinate.
-            coords[n_acc + 1] = test
-            n_acc += 1
-        end
-    end
-    return coords
-end
-
-
 # Defining a function to pre-calculate p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT Algorithm.
 
 
@@ -254,6 +192,69 @@ function aabb_3d(vertices :: Vector{Point{3, Float32}}) :: Tuple{Uniform{Float32
     z_range = Uniform(min_coord[3], max_coord[3])
     return x_range, y_range, z_range
 end
+
+
+# Defining a function to generate the desired number of MC sample points.
+
+
+"""
+Generates the required number of MC sample points.
+
+Parameters
+----------
+ranges (3-tuple of uniform distributions of floats): Extrema of the AABB, in units of the .stl file.
+e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+coords (n_mc-vector of 3-vectors with float elements): Empty vector of coordinates of sample points.
+n_faces (integer): Number of faces of .stl file.
+n_mc (integer) : Number of sample points required.
+
+Returns
+-------
+coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
+"""
+
+function sample!(
+    ranges :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}, 
+    e2s :: Vector{SVector{3, Float32}}, 
+    e3s :: Vector{SVector{3, Float32}}, 
+    v1s :: Vector{SVector{3, Float32}}, 
+    coords :: Vector{SVector{3, Float32}},
+    n_faces :: Integer,
+    n_mc :: Integer
+    ) :: Vector{SVector{3, Float32}}
+    # Pre-allocating the necessary vectors.
+    λs = Vector{Float32}(undef, 10)
+    path_lengths = Vector{Float32}(undef, 10)
+    p = Vector{SVector{3, Float32}}(undef, n_faces)
+    det = Vector{Float32}(undef, n_faces)
+    # Sending a dummy neutron along the x direction, starting at this test coordinate.
+    d = SVector{3, Float32}(-1, 0, 0)
+    # Calculating p and det required for the MT algorithm.
+    pdet_calc!(d, e2s, e3s, p, det, n_faces)
+    # Tallying the number of accepted coordinates.
+    n_acc = 0
+    # Continuing this sample generation until there are n_mc coordinates inside the crytal(s).
+    while n_acc < n_mc
+        # Generating a random coordinate within the pre-defined sample range.
+        x = rand(ranges[1])
+        y = rand(ranges[2])
+        z = rand(ranges[3])
+        test = SVector{3, Float32}(x, y, z)
+        # Calculating the number of intersections this theoretical neutron makes with the sample surfaces.
+        n_int = int_calc(e2s, e3s, d, p, det, test, v1s, λs, path_lengths, n_faces)
+        # If it makes an even number of intersections, it is outside a sample.
+        # Odd number of intersections means it began in a sample.
+        if isodd(n_int)
+            # Accepting this test coordinate.
+            coords[n_acc + 1] = test
+            n_acc += 1
+        end
+    end
+    return coords
+end
+
 
 end
 

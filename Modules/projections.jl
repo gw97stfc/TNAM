@@ -31,7 +31,7 @@ function rotate(θ :: Float32, vertices :: Vector{Point{3, Float32}}) :: Vector{
     # Calculating rotation matrix.
     R_z = Matrix{Float32}([[cos(θ), -sin(θ), 0] [sin(θ), cos(θ), 0] [0, 0, 1]])
     # Applying rotation matrix to each vertex.
-    @inbounds for i in 1:length(vertices)
+    for i in 1:length(vertices)
         r_vertices[i] = R_z * vertices[i]
     end
     return r_vertices
@@ -179,7 +179,7 @@ Accomplishes this by dividing by the area of the sample projected onto the y-z p
 
 Parameters
 ----------
-s_data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
 r_vertices (vector with 3-vector elements with float elements): Vertices of sample (pre-rotated as needed for this .nxspe file), in units of .stl file.
 indices (n_faces vector of 3-vectors with integer elements): Indices of the vertices that make up each face.
 n_faces (integer): Number of faces.

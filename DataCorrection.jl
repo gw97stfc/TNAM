@@ -7,6 +7,7 @@ using StaticArrays
 using Base.Threads
 using BenchmarkTools
 using HDF5
+using Random
 include("Modules/nxspe.jl")
 using .nxspe
 include("Modules/sampling.jl")
@@ -21,11 +22,11 @@ using .projections
 
 """
 Corrects the measured neutron signals by taking into consideration the variation of flux incident on the sample with the rotation angle, ψ, and the absorption of neutrons in the sample.
-Outputs corrected nxspe files into hidden folder: 'output_nxspe_data'.
+Outputs corrected nxspe files into a chosen directory.
 
 Parameters
 ----------
-nxspes (vector with string elements): Name of each .nxspe file within 'test_nxspe_data'.
+nxspes (vector with integer elements): Variable part of each .nxspe file.
 ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file.
 complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
@@ -33,18 +34,26 @@ complex (bool): Program that this function will use. True = general crystal morp
 en_ref (float): Reference energy, in meV.
 n_abs (integer): Number of MC sample points used in the absorption correction.
 n_flux (integer): Number of MC sample points used in the flux correction.
+seed (integer): Optional random seed.
 
 """
 function correct(
-    nxspes :: Vector{String}, 
+    nxspes :: Vector{Integer}, 
     ψs :: Vector{Float32}, 
     sample :: String, 
     complex :: Bool, 
     μ_ref :: Float32, 
     en_ref :: Float32, 
     n_abs :: Integer, 
-    n_flux :: Integer
+    n_flux :: Integer;
+    seed :: Union{Int, Nothing}=nothing
     )
+    # Setting the random number seed.
+    if isnothing(seed)
+        Random.seed!()
+    else
+        Random.seed!(seed)
+    end
     # Setting the complexity of the sample.
     # The crystal morphology affects the speed of program.
     # 'complex' means a sample with a concave surface or multiple crystals.
@@ -71,9 +80,14 @@ function correct(
     pol = Vector{Vector{Float32}}(undef, n_files)
     data = Vector{Matrix{Float32}}(undef, n_files)
     Δen = Vector{Vector{Float32}}(undef, n_files)
+    # Setting the general form of the input nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'input_data'.
+    input_file_dir = "input_data/"
+    file_start = "LET104"
+    file_end = "_3.7meV_1to1.nxspe"
     # Pre-extracting the contents of each .nxspe file.
     for j in 1:n_files
-        en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract("test_nxspe_data/$(nxspes[j])")
+        en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(input_file_dir * file_start * "$(nxspes[j])" * file_end)
     end
     # Parallelising the program to correct multiple files at once.
     @threads for i in 1:n_files
@@ -114,23 +128,26 @@ function correct(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_ca_data
     end
-    return c_data
-    # Creating and filling these corrected .nxspe files inside 'output_nxspe_data' folder.
-    # for k in 1:n_files
-    #     # Creating the .nxspe file outputted.
-    #     corrected_nxspe = "output_nxspe_data/c_$(nxspes[k])"
-    #     # Copying the .nxspe file into corrected, output file.
-    #     cp("test_nxspe_data/$(nxspes[k])", corrected_nxspe)
-    #     # Replacing the data with the corrected data.
-    #     h5open(corrected_nxspe, "r+") do f
-    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
-    #         write(f["ws_out/data/data"], c_data[k])
-    #     end
-    # end
+    # Setting the general form of the output nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'output_data'.
+    output_file_dir = "output_data/"
+    display("hello")
+    # Creating and filling these corrected .nxspe files.
+    for k in 1:n_files
+        # Creating the .nxspe file outputted.
+        corrected_nxspe = output_file_dir * "c_" * file_start * "$(nxspes[k])" * file_end
+        # Copying the .nxspe file into corrected, output file.
+        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+        # Replacing the data with the corrected data.
+        h5open(corrected_nxspe, "r+") do f
+            write(f["ws_out/NXSPE_info/psi"], ψs[k])
+            write(f["ws_out/data/data"], c_data[k])
+        end
+    end
 end
 
 
-#c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 100, 10000)
+correct([215, 216], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 5, 10000)
 #@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
 
 #@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
