@@ -143,8 +143,8 @@ Corrects the measured data by taking neutron absorption into consideration. The 
 
 Parameters
 ----------
-s_data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
-s_atten (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
+data (n_bins x n_detectors matrix with float elements): Neutron signal measured at different detectors for different energy bins.
+atten (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
 
 Returns
 -------
