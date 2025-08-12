@@ -6,6 +6,7 @@ using MeshIO
 using StaticArrays
 using Base.Threads
 using BenchmarkTools
+using HDF5
 include("Modules/nxspe.jl")
 using .nxspe
 include("Modules/sampling.jl")
@@ -20,10 +21,11 @@ using .projections
 
 """
 Corrects the measured neutron signals by taking into consideration the variation of flux incident on the sample with the rotation angle, ψ, and the absorption of neutrons in the sample.
+Outputs corrected nxspe files into hidden folder: 'output_nxspe_data'.
 
 Parameters
 ----------
-nxspes (vector with string elements): Path to each .nxspe file.
+nxspes (vector with string elements): Name of each .nxspe file within 'test_nxspe_data'.
 ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file.
 complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
@@ -32,9 +34,6 @@ en_ref (float): Reference energy, in meV.
 n_abs (integer): Number of MC sample points used in the absorption correction.
 n_flux (integer): Number of MC sample points used in the flux correction.
 
-Returns
--------
-c_data (vector of matrix with float elements): Corrected data for each file.
 """
 function correct(
     nxspes :: Vector{String}, 
@@ -65,7 +64,7 @@ function correct(
     # Calculating the number of .nxspe files.
     n_files = length(nxspes)
     # Creating the store of corrected data.
-    c_data = Vector{Matrix{Float32}}(undef, n_files)
+    c_data = Vector{Matrix{Float64}}(undef, n_files)
     # Pre-allocating the vectors to store contents of .nxspe files.
     en_i = Vector{Float32}(undef, n_files)
     azi = Vector{Vector{Float32}}(undef, n_files)
@@ -74,11 +73,10 @@ function correct(
     Δen = Vector{Vector{Float32}}(undef, n_files)
     # Pre-extracting the contents of each .nxspe file.
     for j in 1:n_files
-        en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(nxspes[j])
+        en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract("test_nxspe_data/$(nxspes[j])")
     end
     # Parallelising the program to correct multiple files at once.
-    #@threads for i in 1:n_files
-    for i in 1:n_files
+    @threads for i in 1:n_files
         # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
         ki = zeros(3)
         ki[1] = nxspe.magk_calc(en_i[i])
@@ -117,10 +115,24 @@ function correct(
         c_data[i] = cf_ca_data
     end
     return c_data
+    # Creating and filling these corrected .nxspe files inside 'output_nxspe_data' folder.
+    # for k in 1:n_files
+    #     # Creating the .nxspe file outputted.
+    #     corrected_nxspe = "output_nxspe_data/c_$(nxspes[k])"
+    #     # Copying the .nxspe file into corrected, output file.
+    #     cp("test_nxspe_data/$(nxspes[k])", corrected_nxspe)
+    #     # Replacing the data with the corrected data.
+    #     h5open(corrected_nxspe, "r+") do f
+    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
+    #         write(f["ws_out/data/data"], c_data[k])
+    #     end
+    # end
 end
 
-c_data = correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe", "test_nxspe_data/LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 5, 10000)
 
-#@benchmark correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe", "test_nxspe_data/LET104216_3.7meV_1to1.nxspe", "test_nxspe_data/LET104217_3.7meV_1to1.nxspe", "test_nxspe_data/LET104218_3.7meV_1to1.nxspe", "test_nxspe_data/LET104219_3.7meV_1to1.nxspe", "test_nxspe_data/LET104220_3.7meV_1to1.nxspe", "test_nxspe_data/LET104221_3.7meV_1to1.nxspe", "test_nxspe_data/LET104222_3.7meV_1to1.nxspe", "test_nxspe_data/LET104223_3.7meV_1to1.nxspe", "test_nxspe_data/LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
+#c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 100, 10000)
+#@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
 
-#@benchmark correct(["test_nxspe_data/LET104215_3.7meV_1to1.nxspe", "test_nxspe_data/LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 1, 10000)
+#@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
+#c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
+

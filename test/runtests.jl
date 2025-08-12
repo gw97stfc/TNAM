@@ -226,17 +226,6 @@ end
         gen_len = gen_crystal.len_calc(e2s, e3s, d_test, p_test, det_test, mc_coords[i], v1s, λs, path_lengths, n_faces)
         # Testing if path lengths are approximately equal.
         @test isapprox(sin_len, gen_len, atol=1f-2)
-        # Printing the direction and origin of runs that failed to allow for further investigation.
-        if typeof(sin_len) == Float32 && typeof(gen_len) == Float32
-            if ~isapprox(sin_len, gen_len, atol=1f-2)
-                println()
-                println("The single and general crystal programs outputted path lengths $sin_len and $gen_len respectively.")
-                println("The direction vector and position vector of this error were:")
-                display(d_test)
-                display(mc_coords[i])
-                println()
-            end
-        end
     end
 end
 
@@ -600,7 +589,118 @@ end
         sin_atten = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, sin_len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
         gen_atten = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, gen_len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
         @test isapprox(sin_atten, gen_atten, atol=1f-2)
-        display(sin_atten)
-        display(gen_atten)
+    end
+end
+
+
+# Testing if the attenuation matches the 'analytic' approximation for spheres.
+# Failures arise to small differences likely due to approximations.
+@testitem "Attenuation Comparison w Sphere Approximation - Single Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    using .sin_crystal
+    # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    vertices = GeometryBasics.coordinates(stl)
+    indices = GeometryBasics.faces(stl)
+    # Extracting the number of triangular faces used in the mesh.
+    n_faces = length(indices)
+    # Calculating v1s, e2s, e3s needed for the MT algorithm.
+    v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+    # Creating fake final energy.
+    en_test = 1f0
+    # Determining the random coordinates within the sample.
+    n_mc = 1000
+    mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+    ranges = sampling.aabb_3d(vertices)
+    sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    # Approximation assumes a constant μ so ensuring this happens for the program too.
+    μ_ref = Float32(1)
+    en_ref = Float32(1)
+    μi = Float32(1)
+    # Calculating the initial path lengths.
+    sin_len_i = sin_crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    # Iterating through random direction vectors confined to the x-y plane.
+    for i in 1:10
+        # Generating a random direction vector.
+        d_test = SVector{3, Float32}(randn(), randn(), 0)
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        sampling.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Calculating attenuation factor using this program.
+        program_atten = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, sin_len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+        # Need scattering angle 2θ which is equivalent to the azimuthal angle.
+        θ = (1 / 2) * atan(d_test[2] / d_test[1])
+        # Calculating attenuation factor using the approximation for spheres.
+        # Excluding μ and R as they are both 1.
+        approx_atten = exp(-(1.5108 - (0.0315 * (sin(θ))^2)) - (-0.0951 - (0.2898 * (sin(θ))^2)))
+        # Testing if they are close to one another.
+        # Large tolerance considering this is approximate formula and approximate sphere.
+        @test isapprox(program_atten, approx_atten, atol=1f-1)
+    end
+end
+
+
+# Testing if the attenuation matches the 'analytic' approximation for spheres.
+# Failures arise to small differences likely due to approximations.
+@testitem "Attenuation Comparison w Sphere Approximation - Single Crystal" begin
+    using FileIO
+    using GeometryBasics
+    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    using .sampling
+    using StaticArrays
+    using LinearAlgebra
+    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    using .gen_crystal
+    # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    vertices = GeometryBasics.coordinates(stl)
+    indices = GeometryBasics.faces(stl)
+    # Extracting the number of triangular faces used in the mesh.
+    n_faces = length(indices)
+    # Calculating v1s, e2s, e3s needed for the MT algorithm.
+    v1s, e2s, e3s = sampling.ve_calc(vertices, indices)
+    # Creating fake final energy.
+    en_test = 1f0
+    # Determining the random coordinates within the sample.
+    n_mc = 1000
+    mc_coords = Vector{SVector{3, Float32}}(undef, n_mc)
+    ranges = sampling.aabb_3d(vertices)
+    sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    # Approximation assumes a constant μ so ensuring this happens for the program too.
+    μ_ref = Float32(1)
+    en_ref = Float32(1)
+    μi = Float32(1)
+    # Calculating the initial path lengths.
+    gen_len_i = gen_crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_mc)
+    # Iterating through random direction vectors confined to the x-y plane.
+    for i in 1:10
+        # Pre-allocating path length stores.
+        λs = Vector{Float32}(undef, 10)
+        path_lengths = Vector{Float32}(undef, 10)
+        # Generating a random direction vector.
+        d_test = SVector{3, Float32}(randn(), randn(), 0)
+        d_test = d_test / norm(d_test)
+        # Calculating p, det for MT algorithm.
+        p_test = Vector{SVector{3, Float32}}(undef, n_faces)
+        det_test = Vector{Float32}(undef, n_faces)
+        sampling.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
+        # Calculating attenuation factor using this program.
+        program_atten = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, gen_len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+        # Need scattering angle 2θ which is equivalent to the azimuthal angle.
+        θ = (1 / 2) * atan(d_test[2] / d_test[1])
+        # Calculating attenuation factor using the approximation for spheres.
+        # Excluding μ and R as they are both 1.
+        approx_atten = exp(-(1.5108 - (0.0315 * (sin(θ))^2)) - (-0.0951 - (0.2898 * (sin(θ))^2)))
+        # Testing if they are close to one another.
+        # Large tolerance considering this is approximate formula and approximate sphere.
+        @test isapprox(program_atten, approx_atten, atol=1f-1)
     end
 end
