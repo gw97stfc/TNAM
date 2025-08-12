@@ -38,7 +38,7 @@ seed (integer): Optional random seed.
 
 """
 function correct(
-    nxspes :: Vector{Integer}, 
+    nxspes :: Vector{Int}, 
     ψs :: Vector{Float32}, 
     sample :: String, 
     complex :: Bool, 
@@ -131,7 +131,6 @@ function correct(
     # Setting the general form of the output nxspe files.
     # Currently set for LET files contained within the hidden folder: 'output_data'.
     output_file_dir = "output_data/"
-    display("hello")
     # Creating and filling these corrected .nxspe files.
     for k in 1:n_files
         # Creating the .nxspe file outputted.
@@ -147,7 +146,7 @@ function correct(
 end
 
 
-correct([215, 216], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 5, 10000)
+#correct([215, 216], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 5, 10000)
 #@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
 
 #@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
