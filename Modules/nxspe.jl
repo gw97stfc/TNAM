@@ -7,7 +7,6 @@ using HDF5
 import PhysicalConstants.CODATA2018: m_n, e, ħ
 using Unitful
 using StaticArrays
-using SparseArrays
 
 
 # Defining a function to extract the useful parts of the .nxspe files.
