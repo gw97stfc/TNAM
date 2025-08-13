@@ -5,7 +5,6 @@ using LinearAlgebra
 using MeshIO
 using StaticArrays
 using Base.Threads
-using BenchmarkTools
 using HDF5
 using Random
 include("Modules/nxspe.jl")
@@ -28,24 +27,24 @@ Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
 ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
-sample (string): Path to the .stl file.
+sample (string): Path to the .stl file (with units of mm).
 complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
 μ_ref (float): Attenuation coefficent at the reference energy, in cm^-1.
 en_ref (float): Reference energy, in meV.
-n_abs (integer): Number of MC sample points used in the absorption correction.
-n_flux (integer): Number of MC sample points used in the flux correction.
-seed (integer): Optional random seed.
+n_abs (integer): (Optional) Number of MC sample points used in the absorption correction.
+n_flux (integer): (Optional) Number of MC sample points used in the flux correction.
+seed (integer): (Optional) Random seed.
 
 """
-function correct_fa(
+function correct_af(
     nxspes :: Vector{Int}, 
     ψs :: Vector{Float32}, 
     sample :: String, 
     complex :: Bool, 
     μ_ref :: Float32, 
-    en_ref :: Float32, 
-    n_abs :: Integer, 
-    n_flux :: Integer;
+    en_ref :: Float32; 
+    n_abs :: Integer=1000, 
+    n_flux :: Integer=100000,
     seed :: Union{Int, Nothing}=nothing
     )
     # Setting the random number seed.
@@ -109,16 +108,15 @@ function correct_fa(
         r_vertices = projections.rotate(ψs[i], vertices)
         # Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
         v1s, e2s, e3s = sampling.ve_calc(r_vertices, indices)
-        # Setting the desired number of MC sample points and creating vector for coordinates.
+        # Pre-allocating vector of MC coordinates and pre-scattering path lengths.
+        len_i = Vector{Float32}(undef, n_abs)
         mc_coords = Vector{SVector{3, Float32}}(undef, n_abs)
         # Calculating the extrema of the axis-aligned bounding box around the sample.
         ranges = sampling.aabb_3d(vertices)
-        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_abs)
+        # Calculating the MC coordinates and initial path lengths.
+        sampling.sample!(ranges, e2s, e3s, v1s, len_i, mc_coords, complex, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
         μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
-        # The pre-scattering neutron path lengths are dependent only on the MC coordinates.
-        # They can, therefore, be calculated and stored.
-        len_i = crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_abs)
         # Calculating this grid of attenuation factors.
         atten_grid = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
         # Correcting the data for absorption.
@@ -155,12 +153,12 @@ Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
 ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
-sample (string): Path to the .stl file.
+sample (string): Path to the .stl file (with units of mm).
 complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
 μ_ref (float): Attenuation coefficent at the reference energy, in cm^-1.
 en_ref (float): Reference energy, in meV.
-n_abs (integer): Number of MC sample points used in the absorption correction.
-seed (integer): Optional random seed.
+n_abs (integer): (Optional) Number of MC sample points used in the absorption correction.
+seed (integer): (Optional) Random seed.
 
 """
 function correct_a(
@@ -169,8 +167,8 @@ function correct_a(
     sample :: String, 
     complex :: Bool, 
     μ_ref :: Float32, 
-    en_ref :: Float32, 
-    n_abs :: Integer;
+    en_ref :: Float32; 
+    n_abs :: Integer=1000,
     seed :: Union{Int, Nothing}=nothing
     )
     # Setting the random number seed.
@@ -234,16 +232,15 @@ function correct_a(
         r_vertices = projections.rotate(ψs[i], vertices)
         # Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
         v1s, e2s, e3s = sampling.ve_calc(r_vertices, indices)
-        # Setting the desired number of MC sample points and creating vector for coordinates.
+        # Pre-allocating vector of MC coordinates and pre-scattering path lengths.
+        len_i = Vector{Float32}(undef, n_abs)
         mc_coords = Vector{SVector{3, Float32}}(undef, n_abs)
         # Calculating the extrema of the axis-aligned bounding box around the sample.
         ranges = sampling.aabb_3d(vertices)
-        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_abs)
+        # Calculating the MC coordinates and initial path lengths.
+        sampling.sample!(ranges, e2s, e3s, v1s, len_i, mc_coords, complex, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
         μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
-        # The pre-scattering neutron path lengths are dependent only on the MC coordinates.
-        # They can, therefore, be calculated and stored.
-        len_i = crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_abs)
         # Calculating this grid of attenuation factors.
         atten_grid = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
         # Correcting the data for absorption.
@@ -278,16 +275,16 @@ Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
 ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
-sample (string): Path to the .stl file.
-n_flux (integer): Number of MC sample points used in the flux correction.
-seed (integer): Optional random seed.
+sample (string): Path to the .stl file (with units of mm).
+n_flux (integer): (Optional) Number of MC sample points used in the flux correction.
+seed (integer): (Optional) Random seed.
 
 """
 function correct_f(
     nxspes :: Vector{Int}, 
     ψs :: Vector{Float32}, 
-    sample :: String, 
-    n_flux :: Integer;
+    sample :: String; 
+    n_flux :: Integer=100000,
     seed :: Union{Int, Nothing}=nothing
     )
     # Setting the random number seed.
@@ -326,7 +323,7 @@ function correct_f(
         # Assumes ψ is anti-clockwise rotation angle.
         r_vertices = projections.rotate(ψs[i], vertices)
         # Correcting the data for varying flux.
-        cf_data = projections.flux_corr(data, r_vertices, indices, n_faces, n_flux)
+        cf_data = projections.flux_corr(data[i], r_vertices, indices, n_faces, n_flux)
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_data
     end
