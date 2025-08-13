@@ -4,7 +4,6 @@ module sin_crystal
 using StaticArrays
 using LinearAlgebra
 using LoopVectorization
-using SparseArrays
 
 
 # Defining the function that calculates the attenuation coefficent for the inputted energy.

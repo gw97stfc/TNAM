@@ -5,7 +5,6 @@ module projections
 using GeometryBasics
 using StaticArrays
 using Distributions
-using SparseArrays
 
 
 # Defining a function to rotate the sample about the z-axis.
