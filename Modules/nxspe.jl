@@ -47,6 +47,29 @@ function extract(file_name :: String)
 end
 
 
+"""
+Extracts just the measured data from the .nxspe file.
+
+Parameters
+----------
+file_name (String): Path to the .nxspe file.
+
+Returns
+-------
+data (n_bins x n_detectors matrix with float elements): Measured signal at each detector for each bin.
+"""
+function extract_data(file_name :: String)
+    # Extracting the contents of the .nxspe file.
+    data = h5open(file_name, "r") do f
+        # Measured signal for each energy bin and each detector.
+        data = read(f["ws_out/data/data"])
+        # Converting the elements to Float32 since the vertices of the .stl file are also Float32.
+        return Float32.(data)
+    end
+    return data
+end
+
+
 # Defining a function to calculate the magnitude of the wavevector, in Angstrom^-1, of the neutron from its energy.
 
 

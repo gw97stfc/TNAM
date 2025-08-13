@@ -5,6 +5,10 @@ using Distributions
 using StaticArrays
 using LinearAlgebra
 using GeometryBasics
+include("gen_crystal.jl")
+using .gen_crystal
+include("sin_crystal.jl")
+using .sin_crystal
 
 
 # Defining a function to pre-calculate p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT Algorithm.
@@ -198,7 +202,8 @@ end
 
 
 """
-Generates the required number of MC sample points.
+Generates the required number of MC sample points, along with the associated pre-scattering neutron path lengths.
+Ensures that all initial path lengths are defined.
 
 Parameters
 ----------
@@ -206,12 +211,15 @@ ranges (3-tuple of uniform distributions of floats): Extrema of the AABB, in uni
 e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+len_i (n_mc - vector with float elements): Empty vector of pre-scattering path length of neutron, in units of the .stl file.
 coords (n_mc-vector of 3-vectors with float elements): Empty vector of coordinates of sample points.
+complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
 n_faces (integer): Number of faces of .stl file.
 n_mc (integer) : Number of sample points required.
 
 Returns
 -------
+len_i (n_mc - vector with float elements): Pre-scattering path length of neutron, in units of the .stl file.
 coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 """
 
@@ -219,11 +227,13 @@ function sample!(
     ranges :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
-    v1s :: Vector{SVector{3, Float32}}, 
-    coords :: Vector{SVector{3, Float32}},
+    v1s :: Vector{SVector{3, Float32}},
+    len_i :: Vector{Float32},  
+    coords :: Vector{SVector{3, Float32}}, 
+    complex :: Bool, 
     n_faces :: Integer,
     n_mc :: Integer
-    ) :: Vector{SVector{3, Float32}}
+    ) :: Tuple{Vector{Float32}, Vector{SVector{3, Float32}}}
     # Pre-allocating the necessary vectors.
     λs = Vector{Float32}(undef, 10)
     path_lengths = Vector{Float32}(undef, 10)
@@ -247,12 +257,22 @@ function sample!(
         # If it makes an even number of intersections, it is outside a sample.
         # Odd number of intersections means it began in a sample.
         if isodd(n_int)
-            # Accepting this test coordinate.
-            coords[n_acc + 1] = test
-            n_acc += 1
+            # Only allowing the sample point if it can successfully define the initial path length.
+            if complex
+                length = gen_crystal.len_calc(e2s, e3s, d, p, det, test, v1s, λs, path_lengths, n_faces)
+            else
+                length = sin_crystal.len_calc(e2s, e3s, d, p, det, test, v1s, n_faces)
+            end
+            if typeof(length) == Float32
+                # Accepting this test coordinate.
+                n_acc += 1
+                # Storing the coordinate and the pre-scattering path length associated with it.
+                coords[n_acc] = test
+                len_i[n_acc] = length
+            end
         end
     end
-    return coords
+    return len_i, coords
 end
 
 

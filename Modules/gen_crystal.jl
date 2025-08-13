@@ -192,53 +192,6 @@ function pdet_calc!(
 end
 
 
-# Defining the function that calculates the pre-scattering path lengths.
-
-
-"""
-Calculates the pre-scattering path lengths for each MC sampling point in the crystal(s).
-
-Parameters
-----------
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
-n_faces (integer): Number of faces.
-n_mc (integer): Number of MC sample points.
-
-Returns
--------
-len_i (n_mc - vector with float elements): Pre-scattering path lengths, in units of the .stl file.
-"""
-function len_i_calc(
-    e2s :: Vector{SVector{3, Float32}}, 
-    e3s :: Vector{SVector{3, Float32}}, 
-    v1s :: Vector{SVector{3, Float32}}, 
-    coords :: Vector{SVector{3, Float32}},  
-    n_faces :: Integer, 
-    n_mc :: Integer
-    ) :: Vector{Float32}
-    # Taking the pre-scattering direction vector to be anti-parallel to the x-direction.
-    di = SVector{3, Float32}(-1, 0, 0)
-    # Pre-allocating the path length stores.
-    # The length of these vectors should be the maximum expected number of intersections.
-    λs = Vector{Float32}(undef, 10)
-    path_lengths = Vector{Float32}(undef, 10)
-    # Pre-allocating these vectors.
-    p_i = Vector{SVector{3, Float32}}(undef, n_faces)
-    det_i = Vector{Float32}(undef, n_faces)
-    # Calculating p and det required for the MT algorithm.
-    pdet_calc!(di, e2s, e3s, p_i, det_i, n_faces)
-    len_i = Float32.(zeros(n_mc))
-    # Iterating through the Monte Carlo sample points to find the pre-scattering path length of each.
-    for i in 1:n_mc
-        len_i[i] = len_calc(e2s, e3s, di, p_i, det_i, coords[i], v1s, λs, path_lengths, n_faces)
-    end
-    return len_i
-end
-
-
 # Defining the function that will calculate the attenuation factor given a certain energy bin and wavevector.
 
 
