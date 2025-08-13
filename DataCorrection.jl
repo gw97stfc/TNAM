@@ -128,21 +128,22 @@ function correct_fa(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_ca_data
     end
-    # Setting the general form of the output nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'output_data'.
-    output_file_dir = "output_data/"
-    # Creating and filling these corrected .nxspe files.
-    for k in 1:n_files
-        # Creating the .nxspe file outputted.
-        corrected_nxspe = output_file_dir * "afC_" * file_start * "$(nxspes[k])" * file_end
-        # Copying the .nxspe file into corrected, output file.
-        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
-        # Replacing the data with the corrected data.
-        h5open(corrected_nxspe, "r+") do f
-            write(f["ws_out/NXSPE_info/psi"], ψs[k])
-            write(f["ws_out/data/data"], c_data[k])
-        end
-    end
+    return c_data
+    # # Setting the general form of the output nxspe files.
+    # # Currently set for LET files contained within the hidden folder: 'output_data'.
+    # output_file_dir = "output_data/"
+    # # Creating and filling these corrected .nxspe files.
+    # for k in 1:n_files
+    #     # Creating the .nxspe file outputted.
+    #     corrected_nxspe = output_file_dir * "afC_" * file_start * "$(nxspes[k])" * file_end
+    #     # Copying the .nxspe file into corrected, output file.
+    #     cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+    #     # Replacing the data with the corrected data.
+    #     h5open(corrected_nxspe, "r+") do f
+    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
+    #         write(f["ws_out/data/data"], c_data[k])
+    #     end
+    # end
 end
 
 
@@ -250,21 +251,22 @@ function correct_a(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = ca_data
     end
-    # Setting the general form of the output nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'output_data'.
-    output_file_dir = "output_data/"
-    # Creating and filling these corrected .nxspe files.
-    for k in 1:n_files
-        # Creating the .nxspe file outputted.
-        corrected_nxspe = output_file_dir * "aC_" * file_start * "$(nxspes[k])" * file_end
-        # Copying the .nxspe file into corrected, output file.
-        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
-        # Replacing the data with the corrected data.
-        h5open(corrected_nxspe, "r+") do f
-            write(f["ws_out/NXSPE_info/psi"], ψs[k])
-            write(f["ws_out/data/data"], c_data[k])
-        end
-    end
+    return c_data
+    # # Setting the general form of the output nxspe files.
+    # # Currently set for LET files contained within the hidden folder: 'output_data'.
+    # output_file_dir = "output_data/"
+    # # Creating and filling these corrected .nxspe files.
+    # for k in 1:n_files
+    #     # Creating the .nxspe file outputted.
+    #     corrected_nxspe = output_file_dir * "aC_" * file_start * "$(nxspes[k])" * file_end
+    #     # Copying the .nxspe file into corrected, output file.
+    #     cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+    #     # Replacing the data with the corrected data.
+    #     h5open(corrected_nxspe, "r+") do f
+    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
+    #         write(f["ws_out/data/data"], c_data[k])
+    #     end
+    # end
 end
 
 
@@ -328,27 +330,23 @@ function correct_f(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_data
     end
-    # Setting the general form of the output nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'output_data'.
-    output_file_dir = "output_data/"
-    # Creating and filling these corrected .nxspe files.
-    for k in 1:n_files
-        # Creating the .nxspe file outputted.
-        corrected_nxspe = output_file_dir * "fC_" * file_start * "$(nxspes[k])" * file_end
-        # Copying the .nxspe file into corrected, output file.
-        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
-        # Replacing the data with the corrected data.
-        h5open(corrected_nxspe, "r+") do f
-            write(f["ws_out/NXSPE_info/psi"], ψs[k])
-            write(f["ws_out/data/data"], c_data[k])
-        end
-    end
+    return c_data
+    # # Setting the general form of the output nxspe files.
+    # # Currently set for LET files contained within the hidden folder: 'output_data'.
+    # output_file_dir = "output_data/"
+    # # Creating and filling these corrected .nxspe files.
+    # for k in 1:n_files
+    #     # Creating the .nxspe file outputted.
+    #     corrected_nxspe = output_file_dir * "fC_" * file_start * "$(nxspes[k])" * file_end
+    #     # Copying the .nxspe file into corrected, output file.
+    #     cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+    #     # Replacing the data with the corrected data.
+    #     h5open(corrected_nxspe, "r+") do f
+    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
+    #         write(f["ws_out/data/data"], c_data[k])
+    #     end
+    # end
 end
 
 
-#correct([215, 216], [0f0, 0f0], "crystal.stl", false, 1f0, 25.3f0, 5, 10000)
-#@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe"], [0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 5, 10000)
-
-#@benchmark correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
-#c_data = correct(["LET104215_3.7meV_1to1.nxspe", "LET104216_3.7meV_1to1.nxspe", "LET104217_3.7meV_1to1.nxspe", "LET104218_3.7meV_1to1.nxspe", "LET104219_3.7meV_1to1.nxspe", "LET104220_3.7meV_1to1.nxspe", "LET104221_3.7meV_1to1.nxspe", "LET104222_3.7meV_1to1.nxspe", "LET104223_3.7meV_1to1.nxspe", "LET104224_3.7meV_1to1.nxspe"], [0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0, 0f0], "crystal.stl", false, 5f0, 25.3f0, 100, 10000)
 
