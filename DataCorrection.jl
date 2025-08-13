@@ -37,7 +37,7 @@ n_flux (integer): Number of MC sample points used in the flux correction.
 seed (integer): Optional random seed.
 
 """
-function correct(
+function correct_fa(
     nxspes :: Vector{Int}, 
     ψs :: Vector{Float32}, 
     sample :: String, 
@@ -134,7 +134,207 @@ function correct(
     # Creating and filling these corrected .nxspe files.
     for k in 1:n_files
         # Creating the .nxspe file outputted.
-        corrected_nxspe = output_file_dir * "c_" * file_start * "$(nxspes[k])" * file_end
+        corrected_nxspe = output_file_dir * "afC_" * file_start * "$(nxspes[k])" * file_end
+        # Copying the .nxspe file into corrected, output file.
+        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+        # Replacing the data with the corrected data.
+        h5open(corrected_nxspe, "r+") do f
+            write(f["ws_out/NXSPE_info/psi"], ψs[k])
+            write(f["ws_out/data/data"], c_data[k])
+        end
+    end
+end
+
+
+"""
+Corrects the measured neutron signals by taking into consideration the absorption of neutrons in the sample.
+Outputs corrected nxspe files into a chosen directory.
+
+Parameters
+----------
+nxspes (vector with integer elements): Variable part of each .nxspe file.
+ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
+sample (string): Path to the .stl file.
+complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
+μ_ref (float): Attenuation coefficent at the reference energy, in cm^-1.
+en_ref (float): Reference energy, in meV.
+n_abs (integer): Number of MC sample points used in the absorption correction.
+seed (integer): Optional random seed.
+
+"""
+function correct_a(
+    nxspes :: Vector{Int}, 
+    ψs :: Vector{Float32}, 
+    sample :: String, 
+    complex :: Bool, 
+    μ_ref :: Float32, 
+    en_ref :: Float32, 
+    n_abs :: Integer;
+    seed :: Union{Int, Nothing}=nothing
+    )
+    # Setting the random number seed.
+    if isnothing(seed)
+        Random.seed!()
+    else
+        Random.seed!(seed)
+    end
+    # Setting the complexity of the sample.
+    # The crystal morphology affects the speed of program.
+    # 'complex' means a sample with a concave surface or multiple crystals.
+    if complex
+        crystal = gen_crystal
+    else
+        crystal = sin_crystal
+    end
+    # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+    stl = load(sample)
+    vertices = GeometryBasics.coordinates(stl)
+    # Converting the units into cm from mm.
+    vertices = vertices / 10
+    indices = GeometryBasics.faces(stl)
+    # Extracting the number of triangular faces used in the mesh.
+    n_faces = length(indices)
+    # Calculating the number of .nxspe files.
+    n_files = length(nxspes)
+    # Creating the store of corrected data.
+    c_data = Vector{Matrix{Float64}}(undef, n_files)
+    # Pre-allocating the vectors to store contents of .nxspe files.
+    en_i = Vector{Float32}(undef, n_files)
+    azi = Vector{Vector{Float32}}(undef, n_files)
+    pol = Vector{Vector{Float32}}(undef, n_files)
+    data = Vector{Matrix{Float32}}(undef, n_files)
+    Δen = Vector{Vector{Float32}}(undef, n_files)
+    # Setting the general form of the input nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'input_data'.
+    input_file_dir = "input_data/"
+    file_start = "LET104"
+    file_end = "_3.7meV_1to1.nxspe"
+    # Pre-extracting the contents of each .nxspe file.
+    for j in 1:n_files
+        en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(input_file_dir * file_start * "$(nxspes[j])" * file_end)
+    end
+    # Parallelising the program to correct multiple files at once.
+    @threads for i in 1:n_files
+        # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
+        ki = zeros(3)
+        ki[1] = nxspe.magk_calc(en_i[i])
+        # Converting ki to a static array.
+        ki = SVector{3, Float32}(ki)
+        # Extracting the number of energy bins and number of detectors.
+        n_bins = length(Δen[i]) - 1
+        n_detectors = length(azi[i])
+        # Calculating the final neutron energy, in meV, for each energy bin.
+        ef_bins = nxspe.ef_calc(en_i[i], Δen[i], n_bins)
+        # Calculating the final wavevector, in Angstrom^-1, for each energy bin and each detector.
+        kx, ky, kz = nxspe.kf_calc(ef_bins, pol[i], azi[i])
+        # Rotating the sample to the orientation of this specific file.
+        # Assumes the .stl file describes the sample at 0 degrees.
+        # Assumes ψ is anti-clockwise rotation angle.
+        r_vertices = projections.rotate(ψs[i], vertices)
+        # Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
+        v1s, e2s, e3s = sampling.ve_calc(r_vertices, indices)
+        # Setting the desired number of MC sample points and creating vector for coordinates.
+        mc_coords = Vector{SVector{3, Float32}}(undef, n_abs)
+        # Calculating the extrema of the axis-aligned bounding box around the sample.
+        ranges = sampling.aabb_3d(vertices)
+        sampling.sample!(ranges, e2s, e3s, v1s, mc_coords, n_faces, n_abs)
+        # Calculating the pre-scattering attenuation coefficent.
+        μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
+        # The pre-scattering neutron path lengths are dependent only on the MC coordinates.
+        # They can, therefore, be calculated and stored.
+        len_i = crystal.len_i_calc(e2s, e3s, v1s, mc_coords, n_faces, n_abs)
+        # Calculating this grid of attenuation factors.
+        atten_grid = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        # Correcting the data for absorption.
+        ca_data = nxspe.abs_corr(data[i], atten_grid)
+        # Adding this corrected data to the vector containing that for all files.
+        c_data[i] = ca_data
+    end
+    # Setting the general form of the output nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'output_data'.
+    output_file_dir = "output_data/"
+    # Creating and filling these corrected .nxspe files.
+    for k in 1:n_files
+        # Creating the .nxspe file outputted.
+        corrected_nxspe = output_file_dir * "aC_" * file_start * "$(nxspes[k])" * file_end
+        # Copying the .nxspe file into corrected, output file.
+        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+        # Replacing the data with the corrected data.
+        h5open(corrected_nxspe, "r+") do f
+            write(f["ws_out/NXSPE_info/psi"], ψs[k])
+            write(f["ws_out/data/data"], c_data[k])
+        end
+    end
+end
+
+
+"""
+Corrects the measured neutron signals by taking into consideration the variation of flux incident on the sample with the rotation angle, ψ.
+Outputs corrected nxspe files into a chosen directory.
+
+Parameters
+----------
+nxspes (vector with integer elements): Variable part of each .nxspe file.
+ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
+sample (string): Path to the .stl file.
+n_flux (integer): Number of MC sample points used in the flux correction.
+seed (integer): Optional random seed.
+
+"""
+function correct_f(
+    nxspes :: Vector{Int}, 
+    ψs :: Vector{Float32}, 
+    sample :: String, 
+    n_flux :: Integer;
+    seed :: Union{Int, Nothing}=nothing
+    )
+    # Setting the random number seed.
+    if isnothing(seed)
+        Random.seed!()
+    else
+        Random.seed!(seed)
+    end
+    # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
+    stl = load(sample)
+    vertices = GeometryBasics.coordinates(stl)
+    # Converting the units into cm from mm.
+    vertices = vertices / 10
+    indices = GeometryBasics.faces(stl)
+    # Extracting the number of triangular faces used in the mesh.
+    n_faces = length(indices)
+    # Calculating the number of .nxspe files.
+    n_files = length(nxspes)
+    # Creating the store of corrected data.
+    c_data = Vector{Matrix{Float64}}(undef, n_files)
+    # Pre-allocating the vector to store contents of .nxspe files.
+    data = Vector{Matrix{Float32}}(undef, n_files)
+    # Setting the general form of the input nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'input_data'.
+    input_file_dir = "input_data/"
+    file_start = "LET104"
+    file_end = "_3.7meV_1to1.nxspe"
+    # Pre-extracting the data from each .nxspe file.
+    for j in 1:n_files
+        data[j] = nxspe.extract_data(input_file_dir * file_start * "$(nxspes[j])" * file_end)
+    end
+    # Parallelising the program to correct multiple files at once.
+    @threads for i in 1:n_files
+        # Rotating the sample to the orientation of this specific file.
+        # Assumes the .stl file describes the sample at 0 degrees.
+        # Assumes ψ is anti-clockwise rotation angle.
+        r_vertices = projections.rotate(ψs[i], vertices)
+        # Correcting the data for varying flux.
+        cf_data = projections.flux_corr(data, r_vertices, indices, n_faces, n_flux)
+        # Adding this corrected data to the vector containing that for all files.
+        c_data[i] = cf_data
+    end
+    # Setting the general form of the output nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'output_data'.
+    output_file_dir = "output_data/"
+    # Creating and filling these corrected .nxspe files.
+    for k in 1:n_files
+        # Creating the .nxspe file outputted.
+        corrected_nxspe = output_file_dir * "fC_" * file_start * "$(nxspes[k])" * file_end
         # Copying the .nxspe file into corrected, output file.
         cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
         # Replacing the data with the corrected data.
