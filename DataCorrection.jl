@@ -88,6 +88,8 @@ function correct_af(
     for j in 1:n_files
         en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(input_file_dir * file_start * "$(nxspes[j])" * file_end)
     end
+    # Setting the average proportion of MC sample points used for each file.
+    av_acc_rate = 0
     # Parallelising the program to correct multiple files at once.
     @threads for i in 1:n_files
         # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
@@ -118,7 +120,8 @@ function correct_af(
         # Calculating the pre-scattering attenuation coefficent.
         μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
         # Calculating this grid of attenuation factors.
-        atten_grid = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        atten_grid, acc_rate = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        av_acc_rate += acc_rate
         # Correcting the data for absorption.
         ca_data = nxspe.abs_corr(data[i], atten_grid)
         # Correcting the (absorption-corrected) data for varying flux.
@@ -126,6 +129,9 @@ function correct_af(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_ca_data
     end
+    # Calculating the average acceptance rate across the files.
+    av_acc_rate = av_acc_rate / n_files
+    @assert av_acc_rate > 0.8 "The proportion of n_abs (MC sample points used in the absorption correction) being used is $av_acc_rate. If this is not enough accuracy, please increase n_abs."
     return c_data
     # # Setting the general form of the output nxspe files.
     # # Currently set for LET files contained within the hidden folder: 'output_data'.
@@ -212,6 +218,8 @@ function correct_a(
     for j in 1:n_files
         en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(input_file_dir * file_start * "$(nxspes[j])" * file_end)
     end
+    # Setting the average proportion of MC sample points used for each file.
+    av_acc_rate = 0
     # Parallelising the program to correct multiple files at once.
     @threads for i in 1:n_files
         # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
@@ -242,13 +250,17 @@ function correct_a(
         # Calculating the pre-scattering attenuation coefficent.
         μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
         # Calculating this grid of attenuation factors.
-        atten_grid = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        atten_grid, acc_rate = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        av_acc_rate += acc_rate
         # Correcting the data for absorption.
         ca_data = nxspe.abs_corr(data[i], atten_grid)
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = ca_data
     end
-    return c_data
+    # Calculating the average acceptance rate across the files.
+    av_acc_rate = av_acc_rate / n_files
+    @assert av_acc_rate > 0.8 "The proportion of n_abs (MC sample points used in the absorption correction) being used is $av_acc_rate. If this is not enough accuracy, please increase n_abs."
+    return c_data, av_acc_rate
     # # Setting the general form of the output nxspe files.
     # # Currently set for LET files contained within the hidden folder: 'output_data'.
     # output_file_dir = "output_data/"

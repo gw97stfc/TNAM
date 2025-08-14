@@ -159,6 +159,7 @@ en_ref (float): Reference energy, in meV.
 Returns
 -------
 atten_calc (float): Attenuation factor.
+acc_pts (integer): Number of MC sample points used in the calculation.
 """
 function atten_calc(
     df :: SVector{3, Float32}, 
@@ -175,7 +176,7 @@ function atten_calc(
     μ_ref :: Float32, 
     en_ref :: Float32, 
     μi :: Float32
-    ) :: Float32
+    ) :: Tuple{Float32, Integer}
     # Calculating the absorption cross section after the neutron scatters.
     μf = μ_calc(μ_ref, en_ref, en_f)
     # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
@@ -193,12 +194,9 @@ function atten_calc(
         end
     end
     # Dividing by the total number of contributing sample points.
-    if acc_pts == 0
-        error("The path length could not be calculated for any sample point. Are they all within the sample?")
-    else
-        atten = atten / (acc_pts)
-        return atten
-    end
+    @assert acc_pts != 0 "The path length could not be calculated at any sample point (for a specific final wavevector). Try increasing n_abs."
+    atten = atten / (acc_pts)
+    return atten, acc_pts
 end
 
 
@@ -251,21 +249,26 @@ function a_grid_calc(
     μ_ref :: Float32, 
     en_ref :: Float32, 
     μi :: Float32
-    ) :: Matrix{Float32}
+    ) :: Tuple{Matrix{Float32}, Float32}
     atten_grid = zeros(Float32, n_bins, n_detectors)
     # Determining the locations in which the signal is either NaN or 0 as we don't want to calculate atten there.
     idx = findall(.~((data .== 0) .| (isnan.(data))))
     # Pre-allocating the vectors needed for the MT algorithm.
     p_f = Vector{SVector{3, Float32}}(undef, n_faces)
     det_f = Vector{Float32}(undef, n_faces)
+    # Setting the proportion of MC sample points used for this file.
+    acc_rate = 0
     # Skipping checks on array lengths using @inbounds.
     @inbounds for I in idx
         kf = SVector{3, Float32}(kx[I], ky[I], kz[I])
         # Normalising the post-scattering direction vector.
         df = kf / norm(kf)
-        atten_grid[I] = atten_calc(df, ef_bins[I[1]], v1s, e2s, e3s, coords, len_i, p_f, det_f, n_faces, n_mc, μ_ref, en_ref, μi)
+        atten_grid[I], acc_pts = atten_calc(df, ef_bins[I[1]], v1s, e2s, e3s, coords, len_i, p_f, det_f, n_faces, n_mc, μ_ref, en_ref, μi)
+        acc_rate += acc_pts
     end
-    return atten_grid
+    # Calculating this acceptance rate.
+    acc_rate = acc_rate / (length(idx) * n_mc)
+    return atten_grid, acc_rate
 end
 
 end

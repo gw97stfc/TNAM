@@ -96,7 +96,7 @@ function int_calc(
         # If det = p.e2 = (d x e3).e2 = 0, the path is parallel to the triangular face, so it can never intersect it.
         # As we are working with multiple crystals, no culling of back- or front-facing triangles can be done.
         det = dets[j]
-        if abs(det) > 1e-6
+        if abs(det) > 1f-6
             inv_det = 1 / det
             # Calculating t = origin - V1 and q = t x e2 required for the MT algorithm.
             t = origin - v1s[j]
@@ -126,7 +126,7 @@ function int_calc(
     # Duplicate path lengths arise from paths near a vertex between faces.
     push!(path_lengths, λs[1])
     for i in λs
-        if abs(i - last(path_lengths)) > 1e-6
+        if abs(i - last(path_lengths)) > 1f-4
             push!(path_lengths, i)
         end
     end
