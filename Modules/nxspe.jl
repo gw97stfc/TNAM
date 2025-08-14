@@ -85,7 +85,7 @@ Returns
 mag_k (float): Magnitude of wavevector, in Angstrom^-1.
 """
 function magk_calc(en :: Float32) :: Float32
-    mag_k = sqrt(2 * m_n * en * e * (1e-3)) / (ħ * (1e10))
+    mag_k = sqrt(2 * m_n * en * e * (1f-3)) / (ħ * (1f10))
     return ustrip(mag_k)
 end
 
