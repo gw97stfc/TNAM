@@ -13,7 +13,7 @@ using TestItemRunner
     include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -48,7 +48,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
     using .gen_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -89,7 +89,7 @@ end
     # Placing inside a let block to allow for local variable n_suc to work.
     let 
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "crystal.stl"))
+        stl = load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -141,7 +141,7 @@ end
     # Placing inside a let block to allow for local variable n_suc to work.
     let 
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "7_Icospheres320.stl"))
+        stl = load(joinpath(@__DIR__, "..", "STL_Files", "7_Icospheres320.stl"))
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -197,7 +197,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = FileIO.load(joinpath(@__DIR__, "..", "crystal.stl"))
+    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
     vertices = GeometryBasics.coordinates(stl)
     # Converting the vertices into cm.
     vertices = vertices / 10
@@ -244,7 +244,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -283,7 +283,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
     using .gen_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -327,7 +327,7 @@ end
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "crystal.stl"))
+        stl = load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -358,7 +358,7 @@ end
             # Iterating through increasing final energies.
             en_test = Float32(i)
             # Calculating the attenuation factor for each different energy.
-            attenuation = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+            attenuation, acc_pts = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
             # Checking if the attenuation factor has increased with this increased energy.
             @test attenuation > prev_atten
             # Assigning this attenuation factor to the previous attenuation factor.
@@ -381,7 +381,7 @@ end
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "7_Icospheres320.stl"))
+        stl = load(joinpath(@__DIR__, "..", "STL_Files", "7_Icospheres320.stl"))
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -415,7 +415,7 @@ end
             # Iterating through increasing final energies.
             en_test = Float32(i)
             # Calculating the attenuation factor for each different energy.
-            attenuation = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+            attenuation, acc_pts = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
             # Checking if the attenuation factor has increased with this increased energy.
             @test attenuation > prev_atten
             # Assigning this attenuation factor to the previous attenuation factor.
@@ -438,7 +438,7 @@ end
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "crystal.stl"))
+        stl = load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -471,7 +471,7 @@ end
             # Iterating through decreasing initial path lengths.
             len_i = Float32.((10 - i) * ones(n_mc))
             # Calculating the attenuation factor for each different energy.
-            attenuation = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+            attenuation, acc_pts = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
             # Checking if the attenuation factor has increased with this increased energy.
             @test attenuation > prev_atten
             # Assigning this attenuation factor to the previous attenuation factor.
@@ -494,7 +494,7 @@ end
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "7_Icospheres320.stl"))
+        stl = load(joinpath(@__DIR__, "..", "STL_Files", "7_Icospheres320.stl"))
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -530,7 +530,7 @@ end
             # Iterating through decreasing initial path lengths.
             len_i = Float32.((10 - i) * ones(n_mc))
             # Calculating the attenuation factor for each different energy.
-            attenuation = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+            attenuation, acc_pts = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
             # Checking if the attenuation factor has increased with this increased energy.
             @test attenuation > prev_atten
             # Assigning this attenuation factor to the previous attenuation factor.
@@ -554,7 +554,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = FileIO.load(joinpath(@__DIR__, "..", "crystal.stl"))
+    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
     vertices = GeometryBasics.coordinates(stl)
     # Converting the vertices into cm.
     vertices = vertices / 10
@@ -590,8 +590,8 @@ end
         det_test = Vector{Float32}(undef, n_faces)
         sampling.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
         # Calculating the attenuation factors using each program.
-        sin_atten = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, sin_len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
-        gen_atten = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, gen_len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+        sin_atten, sin_acc_pts = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, sin_len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+        gen_atten, gen_acc_pts = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, gen_len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
         @test isapprox(sin_atten, gen_atten, atol=1f-2)
     end
 end
@@ -609,7 +609,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -638,7 +638,7 @@ end
         det_test = Vector{Float32}(undef, n_faces)
         sampling.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
         # Calculating attenuation factor using this program.
-        program_atten = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
+        program_atten, acc_pts = sin_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, n_faces, n_mc, μ_ref, en_ref, μi)
         # Need scattering angle 2θ which is equivalent to the azimuthal angle.
         θ = (1 / 2) * atan(d_test[2] / d_test[1])
         # Calculating attenuation factor using the approximation for spheres.
@@ -663,7 +663,7 @@ end
     include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
     using .gen_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_FileExamples", "Icosphere1280.stl"))
+    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -695,7 +695,7 @@ end
         det_test = Vector{Float32}(undef, n_faces)
         sampling.pdet_calc!(d_test, e2s, e3s, p_test, det_test, n_faces)
         # Calculating attenuation factor using this program.
-        program_atten = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
+        program_atten, acc_pts = gen_crystal.atten_calc(d_test, en_test, v1s, e2s, e3s, mc_coords, len_i, p_test, det_test, λs, path_lengths, n_faces, n_mc, μ_ref, en_ref, μi)
         # Need scattering angle 2θ which is equivalent to the azimuthal angle.
         θ = (1 / 2) * atan(d_test[2] / d_test[1])
         # Calculating attenuation factor using the approximation for spheres.
