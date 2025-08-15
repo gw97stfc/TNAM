@@ -31,27 +31,39 @@ Outputs corrected nxspe files into a chosen directory.
 Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
-ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
+input_file_dir (string): Path to folder containing input .nxspe files.
+file_start (string): Constant part at the start of the .nxspe file.
+file_end (string): Constant part at the end of the .nxspe file.
+output_file_dir (string): Path to folder where output .nxspe files will be stored.
+ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file (with units of mm).
-complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
-μ_ref (float): Attenuation coefficent at the reference energy, in cm^-1.
-en_ref (float): Reference energy, in meV.
-n_abs (integer): (Optional) Number of MC sample points used in the absorption correction.
-n_flux (integer): (Optional) Number of MC sample points used in the flux correction.
+complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
+μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
+en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
+n_abs (integer): (Optional) Number of MC sample points used in the absorption correction. Default of 1000.
+n_flux (integer): (Optional) Number of MC sample points used in the flux correction. Default of 100000.
 seed (integer): (Optional) Random seed.
 
 """
 function correct_af(
-    nxspes :: Vector{Int}, 
-    ψs :: Vector{Float32}, 
+    nxspes :: Vector{Int},
+    input_file_dir :: String,
+    file_start :: String,
+    file_end :: String,
+    output_file_dir :: String, 
+    ψs :: AbstractVector{<:Real}, 
     sample :: String, 
     complex :: Bool, 
-    μ_ref :: Float32, 
-    en_ref :: Float32; 
+    μ_ref :: Real; 
+    en_ref :: Real=25.3f0, 
     n_abs :: Integer=1000, 
     n_flux :: Integer=100000,
     seed :: Union{Int, Nothing}=nothing
     )
+    # Converting the inputs to Float32.
+    ψs = Float32.(ψs)
+    μ_ref = Float32(μ_ref)
+    en_ref = Float32(en_ref)
     # Setting the random number seed.
     if isnothing(seed)
         Random.seed!()
@@ -84,11 +96,6 @@ function correct_af(
     pol = Vector{Vector{Float32}}(undef, n_files)
     data = Vector{Matrix{Float32}}(undef, n_files)
     Δen = Vector{Vector{Float32}}(undef, n_files)
-    # Setting the general form of the input nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'input_data'.
-    input_file_dir = "input_data/"
-    file_start = "LET104"
-    file_end = "_3.7meV_1to1.nxspe"
     # Pre-extracting the contents of each .nxspe file.
     for j in 1:n_files
         en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(input_file_dir * file_start * "$(nxspes[j])" * file_end)
@@ -119,7 +126,7 @@ function correct_af(
         len_i = Vector{Float32}(undef, n_abs)
         mc_coords = Vector{SVector{3, Float32}}(undef, n_abs)
         # Calculating the extrema of the axis-aligned bounding box around the sample.
-        ranges = sampling.aabb_3d(vertices)
+        ranges = sampling.aabb_3d(r_vertices)
         # Calculating the MC coordinates and initial path lengths.
         sampling.sample!(ranges, e2s, e3s, v1s, len_i, mc_coords, complex, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
@@ -134,9 +141,6 @@ function correct_af(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_ca_data
     end
-    # Setting the general form of the output nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'output_data'.
-    output_file_dir = "output_data/"
     # Creating and filling these corrected .nxspe files.
     for k in 1:n_files
         # Creating the .nxspe file outputted.
@@ -162,25 +166,37 @@ Outputs corrected nxspe files into a chosen directory.
 Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
-ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
+input_file_dir (string): Path to folder containing input .nxspe files.
+file_start (string): Constant part at the start of the .nxspe file.
+file_end (string): Constant part at the end of the .nxspe file.
+output_file_dir (string): Path to folder where output .nxspe files will be stored.
+ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file (with units of mm).
-complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
-μ_ref (float): Attenuation coefficent at the reference energy, in cm^-1.
-en_ref (float): Reference energy, in meV.
-n_abs (integer): (Optional) Number of MC sample points used in the absorption correction.
+complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
+μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
+en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
+n_abs (integer): (Optional) Number of MC sample points used in the absorption correction. Default of 1000.
 seed (integer): (Optional) Random seed.
 
 """
 function correct_a(
-    nxspes :: Vector{Int}, 
-    ψs :: Vector{Float32}, 
+    nxspes :: Vector{Int},
+    input_file_dir :: String, 
+    file_start :: String, 
+    file_end :: String, 
+    output_file_dir :: String,  
+    ψs :: AbstractVector{<:Real}, 
     sample :: String, 
     complex :: Bool, 
-    μ_ref :: Float32, 
-    en_ref :: Float32; 
+    μ_ref :: Real; 
+    en_ref :: Real=25.3f0,
     n_abs :: Integer=1000,
     seed :: Union{Int, Nothing}=nothing
     )
+    # Converting the inputs to Float32.
+    ψs = Float32.(ψs)
+    μ_ref = Float32(μ_ref)
+    en_ref = Float32(en_ref)
     # Setting the random number seed.
     if isnothing(seed)
         Random.seed!()
@@ -213,11 +229,6 @@ function correct_a(
     pol = Vector{Vector{Float32}}(undef, n_files)
     data = Vector{Matrix{Float32}}(undef, n_files)
     Δen = Vector{Vector{Float32}}(undef, n_files)
-    # Setting the general form of the input nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'input_data'.
-    input_file_dir = "input_data/"
-    file_start = "LET104"
-    file_end = "_3.7meV_1to1.nxspe"
     # Pre-extracting the contents of each .nxspe file.
     for j in 1:n_files
         en_i[j], azi[j], pol[j], data[j], Δen[j] = nxspe.extract(input_file_dir * file_start * "$(nxspes[j])" * file_end)
@@ -248,7 +259,7 @@ function correct_a(
         len_i = Vector{Float32}(undef, n_abs)
         mc_coords = Vector{SVector{3, Float32}}(undef, n_abs)
         # Calculating the extrema of the axis-aligned bounding box around the sample.
-        ranges = sampling.aabb_3d(vertices)
+        ranges = sampling.aabb_3d(r_vertices)
         # Calculating the MC coordinates and initial path lengths.
         sampling.sample!(ranges, e2s, e3s, v1s, len_i, mc_coords, complex, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
@@ -261,9 +272,6 @@ function correct_a(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = ca_data
     end
-    # Setting the general form of the output nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'output_data'.
-    output_file_dir = "output_data/"
     # Creating and filling these corrected .nxspe files.
     for k in 1:n_files
         # Creating the .nxspe file outputted.
@@ -289,19 +297,29 @@ Outputs corrected nxspe files into a chosen directory.
 Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
-ψs (vector with float elements): Sample rotation angles corresponding to each file, in degrees.
+input_file_dir (string): Path to folder containing input .nxspe files.
+file_start (string): Constant part at the start of the .nxspe file.
+file_end (string): Constant part at the end of the .nxspe file.
+output_file_dir (string): Path to folder where output .nxspe files will be stored.
+ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file (with units of mm).
-n_flux (integer): (Optional) Number of MC sample points used in the flux correction.
+n_flux (integer): (Optional) Number of MC sample points used in the flux correction. Default of 100000.
 seed (integer): (Optional) Random seed.
 
 """
 function correct_f(
     nxspes :: Vector{Int}, 
-    ψs :: Vector{Float32}, 
+    input_file_dir :: String, 
+    file_start :: String, 
+    file_end :: String, 
+    output_file_dir :: String, 
+    ψs :: AbstractVector{<:Real}, 
     sample :: String; 
     n_flux :: Integer=100000,
     seed :: Union{Int, Nothing}=nothing
     )
+    # Converting the inputs to Float32.
+    ψs = Float32.(ψs)
     # Setting the random number seed.
     if isnothing(seed)
         Random.seed!()
@@ -322,11 +340,6 @@ function correct_f(
     c_data = Vector{Matrix{Float64}}(undef, n_files)
     # Pre-allocating the vector to store contents of .nxspe files.
     data = Vector{Matrix{Float32}}(undef, n_files)
-    # Setting the general form of the input nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'input_data'.
-    input_file_dir = "input_data/"
-    file_start = "LET104"
-    file_end = "_3.7meV_1to1.nxspe"
     # Pre-extracting the data from each .nxspe file.
     for j in 1:n_files
         data[j] = nxspe.extract_data(input_file_dir * file_start * "$(nxspes[j])" * file_end)
@@ -342,9 +355,6 @@ function correct_f(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_data
     end
-    # Setting the general form of the output nxspe files.
-    # Currently set for LET files contained within the hidden folder: 'output_data'.
-    output_file_dir = "output_data/"
     # Creating and filling these corrected .nxspe files.
     for k in 1:n_files
         # Creating the .nxspe file outputted.
