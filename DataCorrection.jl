@@ -1,4 +1,6 @@
 # This program will apply the absorption and flux corrections to the set of inputted .nxpse files.
+
+
 using FileIO
 using GeometryBasics
 using LinearAlgebra
@@ -17,6 +19,9 @@ include("Modules/sin_crystal.jl")
 using .sin_crystal
 include("Modules/projections.jl")
 using .projections
+
+
+# Defining the functions to correct the data for neutron flux and absorption.
 
 
 """
@@ -129,25 +134,24 @@ function correct_af(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_ca_data
     end
+    # Setting the general form of the output nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'output_data'.
+    output_file_dir = "output_data/"
+    # Creating and filling these corrected .nxspe files.
+    for k in 1:n_files
+        # Creating the .nxspe file outputted.
+        corrected_nxspe = output_file_dir * "afC_" * file_start * "$(nxspes[k])" * file_end
+        # Copying the .nxspe file into corrected, output file.
+        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+        # Replacing the data with the corrected data.
+        h5open(corrected_nxspe, "r+") do f
+            write(f["ws_out/NXSPE_info/psi"], ψs[k])
+            write(f["ws_out/data/data"], c_data[k])
+        end
+    end
     # Calculating the average acceptance rate across the files.
     av_acc_rate = av_acc_rate / n_files
     @assert av_acc_rate > 0.8 "The proportion of n_abs (MC sample points used in the absorption correction) being used is $av_acc_rate. If this is not enough accuracy, please increase n_abs."
-    return c_data
-    # # Setting the general form of the output nxspe files.
-    # # Currently set for LET files contained within the hidden folder: 'output_data'.
-    # output_file_dir = "output_data/"
-    # # Creating and filling these corrected .nxspe files.
-    # for k in 1:n_files
-    #     # Creating the .nxspe file outputted.
-    #     corrected_nxspe = output_file_dir * "afC_" * file_start * "$(nxspes[k])" * file_end
-    #     # Copying the .nxspe file into corrected, output file.
-    #     cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
-    #     # Replacing the data with the corrected data.
-    #     h5open(corrected_nxspe, "r+") do f
-    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
-    #         write(f["ws_out/data/data"], c_data[k])
-    #     end
-    # end
 end
 
 
@@ -257,25 +261,24 @@ function correct_a(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = ca_data
     end
+    # Setting the general form of the output nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'output_data'.
+    output_file_dir = "output_data/"
+    # Creating and filling these corrected .nxspe files.
+    for k in 1:n_files
+        # Creating the .nxspe file outputted.
+        corrected_nxspe = output_file_dir * "aC_" * file_start * "$(nxspes[k])" * file_end
+        # Copying the .nxspe file into corrected, output file.
+        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+        # Replacing the data with the corrected data.
+        h5open(corrected_nxspe, "r+") do f
+            write(f["ws_out/NXSPE_info/psi"], ψs[k])
+            write(f["ws_out/data/data"], c_data[k])
+        end
+    end
     # Calculating the average acceptance rate across the files.
     av_acc_rate = av_acc_rate / n_files
     @assert av_acc_rate > 0.8 "The proportion of n_abs (MC sample points used in the absorption correction) being used is $av_acc_rate. If this is not enough accuracy, please increase n_abs."
-    return c_data, av_acc_rate
-    # # Setting the general form of the output nxspe files.
-    # # Currently set for LET files contained within the hidden folder: 'output_data'.
-    # output_file_dir = "output_data/"
-    # # Creating and filling these corrected .nxspe files.
-    # for k in 1:n_files
-    #     # Creating the .nxspe file outputted.
-    #     corrected_nxspe = output_file_dir * "aC_" * file_start * "$(nxspes[k])" * file_end
-    #     # Copying the .nxspe file into corrected, output file.
-    #     cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
-    #     # Replacing the data with the corrected data.
-    #     h5open(corrected_nxspe, "r+") do f
-    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
-    #         write(f["ws_out/data/data"], c_data[k])
-    #     end
-    # end
 end
 
 
@@ -339,23 +342,19 @@ function correct_f(
         # Adding this corrected data to the vector containing that for all files.
         c_data[i] = cf_data
     end
-    return c_data
-    # # Setting the general form of the output nxspe files.
-    # # Currently set for LET files contained within the hidden folder: 'output_data'.
-    # output_file_dir = "output_data/"
-    # # Creating and filling these corrected .nxspe files.
-    # for k in 1:n_files
-    #     # Creating the .nxspe file outputted.
-    #     corrected_nxspe = output_file_dir * "fC_" * file_start * "$(nxspes[k])" * file_end
-    #     # Copying the .nxspe file into corrected, output file.
-    #     cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
-    #     # Replacing the data with the corrected data.
-    #     h5open(corrected_nxspe, "r+") do f
-    #         write(f["ws_out/NXSPE_info/psi"], ψs[k])
-    #         write(f["ws_out/data/data"], c_data[k])
-    #     end
-    # end
+    # Setting the general form of the output nxspe files.
+    # Currently set for LET files contained within the hidden folder: 'output_data'.
+    output_file_dir = "output_data/"
+    # Creating and filling these corrected .nxspe files.
+    for k in 1:n_files
+        # Creating the .nxspe file outputted.
+        corrected_nxspe = output_file_dir * "fC_" * file_start * "$(nxspes[k])" * file_end
+        # Copying the .nxspe file into corrected, output file.
+        cp(input_file_dir * file_start * "$(nxspes[k])" * file_end, corrected_nxspe)
+        # Replacing the data with the corrected data.
+        h5open(corrected_nxspe, "r+") do f
+            write(f["ws_out/NXSPE_info/psi"], ψs[k])
+            write(f["ws_out/data/data"], c_data[k])
+        end
+    end
 end
-
-
-
