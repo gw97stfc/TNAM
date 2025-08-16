@@ -1,0 +1,104 @@
+\documentclass{article}
+\usepackage{geometry}
+\usepackage{xcolor}
+\geometry{margin=0.8in}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{float}
+
+\title{Tomographic Neutron Absorption Models (TNAM): \\ User Guide}
+\author{Timothy Long, George Wood, Harry Lane, Sylvia Britto}
+\date{August 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This Julia program is built to correct neutron scattering data by taking into consideration neutron absorption and the varying flux incident on the sample at different angles. Both corrections are accomplished with a Monte Carlo approach. The absorption correction calculates the attenuation factor for each detector and each energy and divides the data by the corresponding attenuation factor. The flux correction calculates the area of the sample's projection onto the y-z plane (perpendicular to the incoming neutron beam) and divides all the data from a single .nxspe file by the corresponding area. As a result of this, the absorption correction is significantly more computationally-intensive. Spacial information about the sample, key to both corrections, is provided by exploiting neutron tomography to image the crystal(s).
+\section{Contents of TNAM Repository}
+Non-trivial contents of the TNAM repository include:
+\begin{itemize}
+    \item \textbf{src} : Folder containing the key code the program uses.
+    \begin{itemize}
+        \item \textcolor{blue}{\textbf{DataCorrection.jl}} : This file is the main program and contains functions that will correct data for neutron flux and absorption individually and together.
+        \item \textcolor{blue}{\textbf{gen\_crystal.jl}} : Module containing functions for the attenuation calculation for a general sample morphology.
+        \item \textcolor{blue}{\textbf{nxspe.jl}} : Module containing functions to extract and manipulate the data taken from the .nxspe files.
+        \item \textcolor{blue}{\textbf{projections.jl}} : Module containing functions to aid in calculations of orthographic projection areas and rotating samples.
+        \item \textcolor{blue}{\textbf{sampling.jl}} : Module containing functions that aid in determining random coordinates within the sample.
+        \item \textcolor{blue}{\textbf{sin\_crystal.jl}} : Module containing functions for the attenuation calculation for a single, convex sample morphology.
+    \end{itemize}
+    \item \textbf{test} : Folder containing program tests and test data.
+    \begin{itemize}
+        \item \textcolor{blue}{\textbf{runtests.jl}} : Julia file containing tests checking the calculations of path lengths and attenuation factors.
+        \item \textbf{Test\_STLs} : Folder containing dummy .stl files used for testing.
+        \item \textbf{Test\_Notebooks} : Folder containing Julia notebooks of early tests of the various aspects of the program.
+        \begin{itemize}
+            \item \textcolor{blue}{\textbf{AttenTest1.ipynb}} : Julia notebook containing the calculation of attenuation factors using 1 MC sampling point and for 1 .nxspe file.
+            \item \textcolor{blue}{\textbf{GeneralAttenTest2.ipynb}} : Julia notebook containing the calculation of attenuation factors using multiple MC sampling points and for 1 .nxspe file. Works for general sample morphology.
+            \item \textcolor{blue}{\textbf{MC\_Sampling.ipynb}} : Julia notebook containing the generation of coordinates inside the sample.
+            \item \textcolor{blue}{\textbf{OrthographicProjections.ipynb}} : Julia notebook containing the calculation of the area of the sample's projection on the y-z plane.
+            \item \textcolor{blue}{\textbf{SingleAttenTest.ipynb}} : Julia notebook containing the calculation of attenuation factors using multiple MC sampling points and for 1 .nxspe file. Works for single, convex sample morphology.
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+\section{Accessing in IDAaaS}
+Due to the computationally-heavy nature of the program, it must be run on IDAaaS for reasonable running times. The user must ensure that the same version of Julia, currently 1.11.6, is being used for package compatibility reasons. This can be checked by typing \verb!VERSION! into the Julia REPL. If a different version is being used on the IDAaaS workspace, download juliaup by running \verb!curl -fsSL https://install.julialang.org | sh! in the terminal. Upon restarting the terminal, one should be able to choose the Julia version by writing \verb!juliaup add 1.11.6! in the terminal. To load this up-to-date version of Julia, enter: \verb!julia --threads=auto!. This step is required to allow for threading.\\
+\\
+The following files must be uploaded from the repository into the folder TNAM for functionality.
+\begin{itemize}
+    \item src
+    \item Project.toml
+    \item Manifest.toml
+\end{itemize}
+Finally, the user must enter the Julia REPL (inside the TNAM directory) and enter the Pkg REPL, via: \verb!]!. To activate the Julia environment use: \verb!activate .!. Staying in the Pkg REPL, the user must then ensure that all the correct packages are installed using: \verb!instantiate!.\\
+\\
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{Images/IDAaaS_Access.png}
+    \caption{Preparing the Julia environment in IDAaaS. Assumes the correct version of Julia is already in place.}
+\end{figure}
+\noindent
+Upon evaluating the file in the Julia REPL, via: \verb!include("src/DataCorrection.jl")!, the functions that correct for flux (\verb!correct_f()!), correct for absorption (\verb!correct_a()!) and correct for both (\verb!correct_af()!) are accessible.
+\section{User Inputs}
+The function that corrects each .nxspe file for neutron flux, \texttt{\textcolor{blue}{correct\_f(nxspes,\ input\_file\_dir,\ file\_start,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample;\ n\_flux,\ seed)}}, has the following inputs. 
+\begin{itemize}
+    \item \textbf{nxspes} : Vector with integer elements containing the variable part of the names of each .nxspe file. For instance, for LET .nxspe files of the form \verb!LET104215_3.7meV_1to1.nxspe!, \verb!104215! is the variable aspect.
+    \item \textbf{input\_file\_dir} : String describing the path to the folder containing the input .nxspe files.
+    \item \textbf{file\_start} : String describing the template of the start of each .nxspe file. For this LET example, this would be \verb!"LET"!.
+    \item \textbf{file\_end} : String describing the template of the end of each .nxspe file. For the LET example, this would be \verb!"_3.7meV_1to1.nxspe"!.
+    \item \textbf{output\_file\_dir} : String describing the path to the folder which will contain the output .nxspe files.
+    \item \textbf{$\psi$s} : Vector with real elements containing the sample rotation angle, $\psi$, corresponding to each .nxspe file, in degrees.
+    \item \textbf{sample} : String describing the path to the sample's .stl file. Should have units of mm, represent the sample at 0 degrees and have an origin at the centre of rotation. These conditions may be satisfied via manipulation in Avizo.
+    \item \textbf{n\_flux} : Optional integer equal to the number of MC sample point used in the flux correction. Default value of 100,000.
+    \item \textbf{seed} : Optional integer random seed.\\
+\end{itemize}
+The function that corrects the data for absorption, \texttt{\textcolor{blue}{correct\_a(nxspes,\ input\_file\_dir,\ file\_start,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample,\ complex,\ $\mu$\_ref;\ en\_ref,\ n\_abs,\ seed)}}, has the following extra inputs.
+\begin{itemize}
+    \item \textbf{complex} : Bool describing the functions that the program will use. \verb!true! will perform the correction for a general sample morphology. The program for the general crystal(s) calculates every intersection point, allowing for neutron paths to exit and re-enter the sample. \verb!false! will perform the correction for a single, convex sample morphology. The program for the single crystal assumes only one intersection point and is, therefore, considerably faster.
+    \item \textbf{$\mu$\_ref} : Real number equal to the attenuation coefficient at the reference energy, in $cm^{-1}$.
+    \item \textbf{en\_ref} : Optional real number equal to the reference energy, in meV. Default of 25.3 meV.
+    \item \textbf{n\_abs} : Optional integer equal to the number of MC sample point used in the absorption correction. Default value of 1,000.\\
+\end{itemize}
+The function that corrects the data for both neutron flux and absorption,
+\texttt{\textcolor{blue}{correct\_af(nxspes,\ input\_file\_dir,\ file\_start,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample,\ complex,\ $\mu$\_ref;\ en\_ref,\ n\_abs,\ n\_flux,\ seed)}}, uses all the arguments listed above.
+\section{Program Outputs}
+The program outputs .nxspe files into a folder chosen by the user. These files are copies of the original .nxspe files except with the corrected data and rotation angle, $\psi$, added in place of the previous data. These new files have the same names but with \verb!aC_!, \verb!fC_! or \verb!afC_! in front depending on whether they have been absorption-, flux-, or absorption and flux-corrected.
+\section{Error Outputs}
+Errors may be outputted in this program if the data outputted is likely to be inaccurate. Excluding trivial errors due to the specific types of inputs required, the following error messages may be seen.
+\begin{itemize}
+    \item \texttt{\textcolor{red}{AssertionError: The path length could not be calculated at any sample point (for a specific final wavevector). Try increasing n\_abs.}} For each detector and energy, the attenuation factor is calculated using many MC sample points. This error means that the attenuation factor could not be calculated (for at least one detector and energy combination) since the post-scattering neutron path length could not be defined for any sample point. This may be down to the Moller-Trumbore algorithm believing that no face has been intersected, or that an even number of intersections has occurred (usually signifying the coordinate is outside the crystal(s)). The incorrect calculation that no faces were intersected is likely due to floating point precision errors. An even number of intersections may be wrongly calculated due to the program's duplicate checker. In some cases, it was found that path lengths could be calculated twice due to neutron paths near a vertex and multiple faces claiming that the neutron intersected with their face. Thus, a duplicate path length remover was required. Currently, this code checks if path lengths are within 0.0001 of one another and removing one if so. However, these path length differences are dependent on the magnitude of the sample coordinates. For instance, an .stl file with coordinates of the order of 0.000001 are all going to be within 0.0001 of one another. Therefore, if a significant number of path lengths are being outputted as \verb!nothing! it may be worth adjusting this value to better suit your sample. It may also be worth checking that the MC coordinates are, indeed, within the crystal(s). Of course, increasing n\_abs increases the number of coordinates and means a path length is more likely to be defined for at least one of them.
+    \item \texttt{\textcolor{red}{AssertionError: The proportion of n\_abs (MC sample points used in the absorption correction) being used is *av\_acc\_rate*. If this is not enough accuracy, please increase n\_abs.}} This error is triggered when less than 80\% of the sample points can be used. A sample point is not used when the post-scattering neutron path length, $L_f$, from it is not defined (ie outputs \verb!nothing!). The corrected .nxspe files are still outputted. This error serves as a warning in case the outputted files are not accurate enough given the acceptance rate of sample points.
+\end{itemize}
+\section{Typical Run Times and Scaling}
+The following run times were collected using the LET: Excitations Single Crystal Large workspace on IDAaaS with 64 threads and 247GB RAM. LET has 98,304 detectors with 320 energy bins but only around 1\% of the data was not zero or NaN. Furthermore, the .stl file describing the sample had around 2,200 faces. Finally, 100 LET files were corrected. With this configuration, it took around 1 hour (in single crystal mode) and 4 hours (in general crystal mode) to correct the data using n\_abs = 1,000 and n\_flux = 10,000. In comparison, correcting just neutron flux, with n\_flux = 100,000, took around 10 seconds. \\
+\\
+The total run time depends strongly on the following quantities.
+\begin{itemize}
+    \item \textbf{n\_faces} : The number of faces comprising the mesh describing the sample surface. This can be chosen in Avizo when creating the .stl file. The run time should scale linearly with the number of faces.
+    \item \textbf{n\_abs} : The number of MC sample points at which the attenuation factor is calculated for the absorption correction. The run time should roughly scale linearly with n\_abs if the absorption correction is being performed.
+    \item \textbf{n\_flux} : The number of MC sample points used in the flux correction. Assuming the absorption correction is also being done, the run time should be approximately independent of n\_flux as it is a much faster process. If not, the run time should scale linearly with n\_flux.
+    \item \textbf{n\_files} : The number of .nxspe files being corrected. The variation of the run time with the number of files depends on the number of threads being used. Each thread is assigned to a different file. If n\_files $<$ n\_threads, the number of files can be increased without drastically affecting the run time. As soon as n\_files exceeds n\_threads, the run time should increase.
+    \item \textbf{complex} : Complexity of the sample (single or general program needed). The program for a general crystal morphology appears to be approximately a factor of 3-4x slower. This dependence only arises if the data is being corrected for absorption.
+    \item \textbf{File Sparsity} : Number of zero and NaN elements of the data in the .nxspe file. The running time should be inversely proportional to the file sparsity for the absorption correction. The file sparsity should have little effect on the flux correction.
+\end{itemize}
+\end{document}

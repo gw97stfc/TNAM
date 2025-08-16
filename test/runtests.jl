@@ -6,14 +6,14 @@ using TestItemRunner
 @testitem "Sphere Test - Single Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
+    stl = load("Test_STLs/Icosphere1280.stl")
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -41,14 +41,14 @@ end
 @testitem "Sphere Test - General Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
+    stl = FileIO.load("Test_STLs/Icosphere1280.stl")
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -80,16 +80,16 @@ end
 @testitem "Sufficient Output Test - Single Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Placing inside a let block to allow for local variable n_suc to work.
     let 
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
+        stl = load("Test_STLs/crystal.stl")
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -132,16 +132,16 @@ end
 @testitem "Sufficient Output Test - General Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
     # Placing inside a let block to allow for local variable n_suc to work.
     let 
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_Files", "7_Icospheres320.stl"))
+        stl = load("Test_STLs/7_Icospheres320.stl")
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -188,16 +188,16 @@ end
 @testitem "Program Equivalence for Path Lengths" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
+    stl = FileIO.load("Test_STLs/crystal.stl")
     vertices = GeometryBasics.coordinates(stl)
     # Converting the vertices into cm.
     vertices = vertices / 10
@@ -237,14 +237,14 @@ end
 @testitem "Path Length Variation with Origin - Single Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
+    stl = load("Test_STLs/Icosphere1280.stl")
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -276,14 +276,14 @@ end
 @testitem "Path Length Variation with Origin - General Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
+    stl = load("Test_STLs/Icosphere1280.stl")
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -318,16 +318,16 @@ end
 @testitem "Attenuation Variation with Energy - Single Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
+        stl = load("Test_STLs/crystal.stl")
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -372,16 +372,16 @@ end
 @testitem "Attenuation Variation with Energy - General Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_Files", "7_Icospheres320.stl"))
+        stl = load("Test_STLs/7_Icospheres320.stl")
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -429,16 +429,16 @@ end
 @testitem "Attenuation Variation with Path Length - Single Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
+        stl = load("Test_STLs/crystal.stl")
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -485,16 +485,16 @@ end
 @testitem "Attenuation Variation with Path Length - General Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
     # Writing in a let block to allow for the local variable prev_atten.
     let
         # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-        stl = load(joinpath(@__DIR__, "..", "STL_Files", "7_Icospheres320.stl"))
+        stl = load("Test_STLs/7_Icospheres320.stl")
         vertices = GeometryBasics.coordinates(stl)
         indices = GeometryBasics.faces(stl)
         # Extracting the number of triangular faces used in the mesh.
@@ -545,16 +545,16 @@ end
 @testitem "Program Equivalence for Attenuation Factors" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = FileIO.load(joinpath(@__DIR__, "..", "STL_Files", "crystal.stl"))
+    stl = FileIO.load("Test_STLs/crystal.stl")
     vertices = GeometryBasics.coordinates(stl)
     # Converting the vertices into cm.
     vertices = vertices / 10
@@ -602,14 +602,14 @@ end
 @testitem "Attenuation Comparison w Sphere Approximation - Single Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "sin_crystal.jl"))
+    include("../src/sin_crystal.jl")
     using .sin_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
+    stl = load("Test_STLs/Icosphere1280.stl")
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.
@@ -656,14 +656,14 @@ end
 @testitem "Attenuation Comparison w Sphere Approximation - General Crystal" begin
     using FileIO
     using GeometryBasics
-    include(joinpath(@__DIR__, "..", "Modules", "sampling.jl"))
+    include("../src/sampling.jl")
     using .sampling
     using StaticArrays
     using LinearAlgebra
-    include(joinpath(@__DIR__, "..", "Modules", "gen_crystal.jl"))
+    include("../src/gen_crystal.jl")
     using .gen_crystal
     # Retrieving the vertices and indices of the triangular mesh of the sample surface from the .stl file.
-    stl = load(joinpath(@__DIR__, "..", "STL_Files", "Icosphere1280.stl"))
+    stl = load("Test_STLs/Icosphere1280.stl")
     vertices = GeometryBasics.coordinates(stl)
     indices = GeometryBasics.faces(stl)
     # Extracting the number of triangular faces used in the mesh.

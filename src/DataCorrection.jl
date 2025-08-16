@@ -9,15 +9,15 @@ using StaticArrays
 using Base.Threads
 using HDF5
 using Random
-include("Modules/nxspe.jl")
+include("nxspe.jl")
 using .nxspe
-include("Modules/sampling.jl")
+include("sampling.jl")
 using .sampling
-include("Modules/gen_crystal.jl")
+include("gen_crystal.jl")
 using .gen_crystal
-include("Modules/sin_crystal.jl")
+include("sin_crystal.jl")
 using .sin_crystal
-include("Modules/projections.jl")
+include("projections.jl")
 using .projections
 
 
@@ -36,7 +36,7 @@ file_start (string): Constant part at the start of the .nxspe file.
 file_end (string): Constant part at the end of the .nxspe file.
 output_file_dir (string): Path to folder where output .nxspe files will be stored.
 ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
-sample (string): Path to the .stl file (with units of mm).
+sample (string): Path to the .stl file (with units of mm) (relative to src folder).
 complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
 μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
 en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
