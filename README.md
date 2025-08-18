@@ -16,7 +16,7 @@ $\frac{1}{N} \sum_{i}^{N} \exp(-\mu_{i}L_{i})\exp(-\mu_{f}L_{f})$
 
 The program has been implemented in Julia for syntactical ease and computational efficiency. In general, the computation is demanding depending on the number of neturon scattering events which require attenuation correction.
 
-To represent the 3D sample _.stl_ files are used. Neutron scattering files are stored in the _.nxspe_ (h5 format) for inelastic neutron scatteirng from direct geometry spectrometers at ISIS Neutron and Muon Source.
+To represent the 3D sample _.stl_ files are used. Neutron scattering files are stored in the _.nxspe_ (h5 format) for inelastic neutron scattering from direct geometry spectrometers at ISIS Neutron and Muon Source.
 
 When working with this repository on a computer, use [Julia environments](https://pkgdocs.julialang.org/v1/environments/) to ensure that exactly the same version of various packages are used for compatibility.
 
