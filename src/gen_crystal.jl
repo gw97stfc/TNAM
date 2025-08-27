@@ -64,15 +64,15 @@ Exploits the method described in 'Fast, Minimum Storage Ray-Triangle Intersectio
 
 Parameters
 ----------
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 d (3-vector with float elements): Normalised direction vector.
-ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
-dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+ps (n_faces-vector of 3-vectors with float elements): p = d x e3 for each face.
+dets (n_faces-vector with float elements): det = p.e2 = (d x e3).e2 for each face.
 origin (3-vector with float elements): Coordinates of scattering sites.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-λs (vector with float elements): Empty vector that will store distances between origin and intersection points, in units of the .stl file.
-path_lengths (vector with float elements): Empty vector that will store non-duplicate distances, in units of the .stl file.
+λs (vector with float elements): Pre-allocated vector that will store distances between origin and intersection points, in units of the .stl file.
+path_lengths (vector with float elements): Pre-allocated vector that will store non-duplicate distances, in units of the .stl file.
 n_faces (integer): Number of faces.
 
 Returns
@@ -156,21 +156,21 @@ end
 
 
 """
-Calculates p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT Algorithm.
+Calculates p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the Moller-Trumbore Algorithm.
 
 Parameters
 ----------
 d (3-vector with float elements): Normalised direction vector.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 ps (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
 dets (n_faces-vector with float elements): Pre-allocated vector.
 n_faces (integer): Number of faces.
 
 Returns
 -------
-ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
-dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+ps (n_faces-vector of 3-vectors with float elements): p = d x e3 for each face.
+dets (n_faces-vector with float elements): det = p.e2 = (d x e3).e2 for each face.
 """
 function pdet_calc!(
     d :: SVector{3, Float32}, 
@@ -203,8 +203,8 @@ Parameters
 df (3-vector with float elements): Normalised post-scattering neutron direction vector, in Angstrom^-1.
 en_f (float): Post-scattering energy of neutron, in meV.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 len_i (n_mc-vector of float elements): Pre-scattering path length of neutron, in units of .stl file.
 p_f (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
@@ -276,8 +276,8 @@ kz (n_bins x n_detectors matrix with float elements): Post-scattering neutron wa
 en_i (float): Pre-scattering neutron energy, in meV.
 ef_bins (n_bins-vector with float elements): Post-scattering neutron energy of each bin, in meV.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 coords (n_mc-vector of 3-vectors with float elements): Coordinates of sample points used in MC method.
 len_i (n_mc-vector with float elements): Pre-scattering path length of neutron, in units of .stl file.
 n_bins (integer): Number of bins.
@@ -291,7 +291,7 @@ en_ref (float): Reference energy, in meV.
 Returns
 -------
 atten_grid (n_bins x n_detectors matrix with float elements): Attenuation factor for different detectors and energy bins.
-acc_rate (float): Acceptance rate of MC sample points.
+acc_rate (float): Proportion of MC sample points used for this .nxspe file.
 """
 function a_grid_calc(
     data :: Matrix{Float32}, 
