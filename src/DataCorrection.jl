@@ -21,23 +21,24 @@ include("projections.jl")
 using .projections
 
 
-# Defining the functions to correct the data for neutron flux and absorption.
+# Defining the function to correct the data for neutron flux and absorption.
 
 
 """
 Corrects the measured neutron signals by taking into consideration the variation of flux incident on the sample with the rotation angle, ψ, and the absorption of neutrons in the sample.
-Outputs corrected nxspe files into a chosen directory.
+Corrected intensities are as if no neutrons had been absorbed and all .nxspe files had seen the same neutron flux.
+Outputs corrected .nxspe files into a chosen directory.
 
 Parameters
 ----------
 nxspes (vector with integer elements): Variable part of each .nxspe file.
-input_file_dir (string): Path to folder containing input .nxspe files.
+input_file_dir (string): Path to folder containing the input .nxspe files.
 file_start (string): Constant part at the start of the .nxspe file.
 file_end (string): Constant part at the end of the .nxspe file.
 output_file_dir (string): Path to folder where output .nxspe files will be stored.
 ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
-sample (string): Path to the .stl file (with units of mm) (relative to src folder).
-complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
+sample (string): Path to the .stl file (with units of mm).
+complex (bool): Program that this function will use. true = general crystal morphology. false = single, convex crystal.
 μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
 en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
 n_abs (integer): (Optional) Number of MC sample points used in the absorption correction. Default of 1000.
@@ -60,6 +61,8 @@ function correct_af(
     n_flux :: Integer=100000,
     seed :: Union{Int, Nothing}=nothing
     )
+    # Ensuring that the number of .nxspe files is consistent.
+    @assert length(nxspes) == length(ψs) "The vectors containing the angles and the variable part of the file name should be the same length."
     # Converting the inputs to Float32.
     ψs = Float32.(ψs)
     μ_ref = Float32(μ_ref)
@@ -88,7 +91,7 @@ function correct_af(
     n_faces = length(indices)
     # Calculating the number of .nxspe files.
     n_files = length(nxspes)
-    # Creating the store of corrected data.
+    # Creating the store of corrected data for each file.
     c_data = Vector{Matrix{Float64}}(undef, n_files)
     # Pre-allocating the vectors to store contents of .nxspe files.
     en_i = Vector{Float32}(undef, n_files)
@@ -159,8 +162,12 @@ function correct_af(
 end
 
 
+# Defining the function to correct the data for absorption.
+
+
 """
 Corrects the measured neutron signals by taking into consideration the absorption of neutrons in the sample.
+Corrected intensities are as if no neutrons had been absorbed.
 Outputs corrected nxspe files into a chosen directory.
 
 Parameters
@@ -193,6 +200,8 @@ function correct_a(
     n_abs :: Integer=1000,
     seed :: Union{Int, Nothing}=nothing
     )
+    # Ensuring that the number of .nxspe files is consistent.
+    @assert length(nxspes) == length(ψs) "The vectors containing the angles and the variable part of the file name should be the same length."
     # Converting the inputs to Float32.
     ψs = Float32.(ψs)
     μ_ref = Float32(μ_ref)
@@ -221,7 +230,7 @@ function correct_a(
     n_faces = length(indices)
     # Calculating the number of .nxspe files.
     n_files = length(nxspes)
-    # Creating the store of corrected data.
+    # Creating the store of corrected data for each .nxspe file.
     c_data = Vector{Matrix{Float64}}(undef, n_files)
     # Pre-allocating the vectors to store contents of .nxspe files.
     en_i = Vector{Float32}(undef, n_files)
@@ -292,6 +301,7 @@ end
 
 """
 Corrects the measured neutron signals by taking into consideration the variation of flux incident on the sample with the rotation angle, ψ.
+Corrected intensities are as if all .nxspe file had seen the same neutron flux.
 Outputs corrected nxspe files into a chosen directory.
 
 Parameters
@@ -318,6 +328,8 @@ function correct_f(
     n_flux :: Integer=100000,
     seed :: Union{Int, Nothing}=nothing
     )
+    # Ensuring that the number of .nxspe files is consistent.
+    @assert length(nxspes) == length(ψs) "The vectors containing the angles and the variable part of the file name should be the same length."
     # Converting the inputs to Float32.
     ψs = Float32.(ψs)
     # Setting the random number seed.
@@ -336,7 +348,7 @@ function correct_f(
     n_faces = length(indices)
     # Calculating the number of .nxspe files.
     n_files = length(nxspes)
-    # Creating the store of corrected data.
+    # Creating the store of corrected data for each .nxspe file.
     c_data = Vector{Matrix{Float64}}(undef, n_files)
     # Pre-allocating the vector to store contents of .nxspe files.
     data = Vector{Matrix{Float32}}(undef, n_files)

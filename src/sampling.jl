@@ -1,6 +1,7 @@
 # This module stores functions that aid in determining random coordinates within the sample.
 module sampling
 
+
 using Distributions
 using StaticArrays
 using LinearAlgebra
@@ -9,6 +10,69 @@ include("gen_crystal.jl")
 using .gen_crystal
 include("sin_crystal.jl")
 using .sin_crystal
+
+
+# Defining a function that will calculate the extrema of the coordinates to build the axis-aligned bounding box (AABB).
+
+
+"""
+Builds the axis-aligned bounding box (AABB) which surrounds the sample. 
+Required for algorithm that generates random coordinates within the sample.
+
+Parameters
+----------
+vertices (n_vert-vector of 3-vectors with float elements): Vertices, in units of .stl file.
+
+Returns
+-------
+x_range (uniform distribution of floats): Range of x, in units of .stl file.
+y_range (uniform distribution of floats): Range of y, in units of .stl file.
+z_range (uniform distribution of floats): Range of z, in units of .stl file.
+
+"""
+function aabb_3d(vertices :: Vector{Point{3, Float32}}) :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}
+    # Finding the maximum and minimum value of each coordinate.
+    max_coord = [maximum(getindex.(vertices, 1)), maximum(getindex.(vertices, 2)), maximum(getindex.(vertices, 3))]
+    min_coord = [minimum(getindex.(vertices, 1)), minimum(getindex.(vertices, 2)), minimum(getindex.(vertices, 3))]
+    # Pre-calculating uniform distribution describing the volume our crystal(s) lies in.
+    x_range = Uniform(min_coord[1], max_coord[1])
+    y_range = Uniform(min_coord[2], max_coord[2])
+    z_range = Uniform(min_coord[3], max_coord[3])
+    return x_range, y_range, z_range
+end
+
+
+# Defining a function to calculate V1, e2 = V2 - V1 and e3 = V3 - V1 for each face.
+
+
+"""
+Calculates V1, e2 = V2 - V1 and e3 = V3 - V1 for each face from the .stl file's vertices and indices.
+
+Parameters
+----------
+vertices (n_vert-vector of 3-vectors with float elements): Vertices, in units of .stl file.
+indices (n_faces vector of 3-vectors with integer elements): Indices of the vertices that make up each face.
+
+Returns
+-------
+v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
+"""
+function ve_calc(vertices :: Vector{Point{3, Float32}}, 
+    indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}
+    ) :: Tuple{Vector{SVector{3, Float32}}, Vector{SVector{3, Float32}}, Vector{SVector{3, Float32}}}
+    # Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
+    # The vertices of the triangular faces are labelled V1, V2, V3.
+    v1s = vertices[getindex.(indices, 1)]
+    e2s = vertices[getindex.(indices, 2)] - vertices[getindex.(indices, 1)]
+    e3s = vertices[getindex.(indices, 3)] - vertices[getindex.(indices, 1)]
+    # Converting the 3-vectors within e2s and e3s to static arrays.
+    v1s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in v1s]
+    e2s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e2s]
+    e3s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e3s]
+    return v1s, e2s, e3s
+end
 
 
 # Defining a function to pre-calculate p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT Algorithm.
@@ -20,16 +84,16 @@ Calculates p = d x e3 and determinant = p.e2 = (d x e3).e2 required for the MT A
 Parameters
 ----------
 d (3-vector with float elements): Normalised direction vector.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 ps (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
 dets (n_faces-vector with float elements): Pre-allocated vector.
 n_faces (integer): Number of faces in .stl file.
 
 Returns
 -------
-ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
-dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+ps (n_faces-vector of 3-vectors with float elements): p = d x e3 for each face.
+dets (n_faces-vector with float elements): det = p.e2 = (d x e3).e2 for each face.
 """
 function pdet_calc!(
     d :: SVector{3, Float32}, 
@@ -61,15 +125,15 @@ Exploits the method described in 'Fast, Minimum Storage Ray-Triangle Intersectio
 
 Parameters
 ----------
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 d (3-vector with float elements): Normalised direction vector.
-ps (n_faces-vector of 3-vectors with float elements): Array containing p = d x e3 for each face.
-dets (n_faces-vector with float elements): Array containing det = p.e2 = (d x e3).e2 for each face.
+ps (n_faces-vector of 3-vectors with float elements): p = d x e3 for each face.
+dets (n_faces-vector with float elements): det = p.e2 = (d x e3).e2 for each face.
 origin (3-vector with float elements): Coordinates of scattering sites.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-λs (vector with float elements): Empty vector that will store distances between origin and intersection points, in units of the .stl file.
-path_lengths (vector with float elements): Empty vector that will store non-duplicate distances, in units of the .stl file.
+λs (vector with float elements): Pre-allocated vector that will store distances between origin and intersection points, in units of the .stl file.
+path_lengths (vector with float elements): Pre-allocated vector that will store non-duplicate distances, in units of the .stl file.
 n_faces (integer): Number of faces of .stl file.
 
 Returns
@@ -136,84 +200,22 @@ function int_calc(
 end
 
 
-# Defining a function to calculate V1, e2 = V2 - V1 and e3 = V3 - V1 for each face.
-
-
-"""
-Calculates V1, e2 = V2 - V1 and e3 = V3 - V1 for each face from the .stl file's vertices and indices.
-
-Parameters
-----------
-vertices (n_vert-vector of 3-vectors with float elements): Vertices, in units of .stl file.
-indices (n_faces vector of 3-vectors with integer elements): Indices of the vertices that make up each face.
-
-Returns
--------
-v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
-"""
-function ve_calc(vertices :: Vector{Point{3, Float32}}, 
-    indices :: Vector{NgonFace{3, OffsetInteger{-1, UInt32}}}
-    ) :: Tuple{Vector{SVector{3, Float32}}, Vector{SVector{3, Float32}}, Vector{SVector{3, Float32}}}
-    # Calculating and storing the vectors parallel to each face, e2 = V2 - V1 and e3 = V3 - V1, and V1s specifically in preparation for the Moller-Trumbore Algorithm.
-    # The vertices of the triangular faces are labelled V1, V2, V3.
-    v1s = vertices[getindex.(indices, 1)]
-    e2s = vertices[getindex.(indices, 2)] - vertices[getindex.(indices, 1)]
-    e3s = vertices[getindex.(indices, 3)] - vertices[getindex.(indices, 1)]
-    # Converting the 3-vectors within e2s and e3s to static arrays.
-    v1s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in v1s]
-    e2s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e2s]
-    e3s = [SVector{3, Float32}(vec[1], vec[2] ,vec[3]) for vec in e3s]
-    return v1s, e2s, e3s
-end
-
-
-# Defining a function that will calculate the extrema of the coordinates to build the axis-aligned bounding box (AABB).
-
-
-"""
-Builds the axis-aligned bounding box (AABB) which surrounds the sample. Required for MC sampling.
-
-Parameters
-----------
-vertices (n_vert-vector of 3-vectors with float elements): Vertices, in units of .stl file.
-
-Returns
--------
-x_range (uniform distribution of floats): Range of x, in units of .stl file.
-y_range (uniform distribution of floats): Range of y, in units of .stl file.
-z_range (uniform distribution of floats): Range of z, in units of .stl file.
-
-"""
-function aabb_3d(vertices :: Vector{Point{3, Float32}}) :: Tuple{Uniform{Float32}, Uniform{Float32}, Uniform{Float32}}
-    # Finding the maximum and minimum value of each coordinate.
-    max_coord = [maximum(getindex.(vertices, 1)), maximum(getindex.(vertices, 2)), maximum(getindex.(vertices, 3))]
-    min_coord = [minimum(getindex.(vertices, 1)), minimum(getindex.(vertices, 2)), minimum(getindex.(vertices, 3))]
-    # Pre-calculating uniform distribution describing the volume our crystal(s) lies in.
-    x_range = Uniform(min_coord[1], max_coord[1])
-    y_range = Uniform(min_coord[2], max_coord[2])
-    z_range = Uniform(min_coord[3], max_coord[3])
-    return x_range, y_range, z_range
-end
-
-
 # Defining a function to generate the desired number of MC sample points.
 
 
 """
 Generates the required number of MC sample points, along with the associated pre-scattering neutron path lengths.
-Ensures that all initial path lengths are defined.
+Ensures that all initial path lengths are defined for these coordinates within the sample.
 
 Parameters
 ----------
 ranges (3-tuple of uniform distributions of floats): Extrema of the AABB, in units of the .stl file.
-e2s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V2 - V1.
-e3s (n_faces-vector of 3-vectors with float elements): Array containing vectors parallel to each face, equal to V3 - V1.
+e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
+e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
-len_i (n_mc - vector with float elements): Empty vector of pre-scattering path length of neutron, in units of the .stl file.
-coords (n_mc-vector of 3-vectors with float elements): Empty vector of coordinates of sample points.
-complex (bool): Program that this function will use. True = general crystal morphology. False = single crystal.
+len_i (n_mc - vector with float elements): Pre-allocated vector of pre-scattering path length of neutron, in units of the .stl file.
+coords (n_mc-vector of 3-vectors with float elements): Pre-allocated vector of coordinates of sample points.
+complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
 n_faces (integer): Number of faces of .stl file.
 n_mc (integer) : Number of sample points required.
 
@@ -277,4 +279,3 @@ end
 
 
 end
-

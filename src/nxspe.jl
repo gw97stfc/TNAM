@@ -47,6 +47,9 @@ function extract(file_name :: String)
 end
 
 
+# Defining a function to extract just the main data from the .nxspe files. This is optimal for the flux correction.
+
+
 """
 Extracts just the measured data from the .nxspe file.
 
@@ -86,11 +89,12 @@ mag_k (float): Magnitude of wavevector, in Angstrom^-1.
 """
 function magk_calc(en :: Float32) :: Float32
     mag_k = sqrt(2 * m_n * en * e * (1f-3)) / (ħ * (1f10))
+    # Removing the units that come with the use of e, ħ and m_n.
     return ustrip(mag_k)
 end
 
 
-# Defining a function to calculate the final energy of neutrons from each bin, based on Ei and the energy change.
+# Defining a function to calculate the final energy of neutrons from each bin, based on the initial energy, en_i, and the energy change.
 
 
 """
@@ -100,7 +104,7 @@ Parameters
 ----------
 en_i (float): Pre-scattering neutron energy, in meV.
 Δen ((n_bins + 1)-vector with float elements): Neutron energy changes, in meV.
-n_bins (integer): Number of bins
+n_bins (integer): Number of bins.
 
 Returns
 -------
@@ -113,7 +117,6 @@ function ef_calc(en_i :: Float32, Δen :: Vector{Float32}, n_bins :: Integer) ::
         # Determining the final neutron energy, Ef = Ei - Δen based on which energy bin we are considering.
         ef_bins[i] = en_i - ((Δen[i] + Δen[i+1]) / 2)
     end
-    # Returning the final energies in a static array.
     return ef_bins
 end
 
@@ -161,7 +164,8 @@ end
 
 
 """
-Corrects the measured data by taking neutron absorption into consideration. The measured signal is divided by the corresponding attenuation factor.
+Corrects the measured data by taking neutron absorption into consideration. 
+The measured signal is divided by the corresponding attenuation factor to yield an intensity as if no neutrons had been absorbed.
 
 Parameters
 ----------
@@ -182,9 +186,10 @@ function abs_corr(
     idx = findall(.~((data .== 0) .| (isnan.(data))))
     # Correcting each signal by dividing by the corresponding attenuation factor.
     for I in idx
-        c_data[I] = c_data[I] * atten[I]
+        c_data[I] = c_data[I] / atten[I]
     end
     return c_data
 end
+
 
 end

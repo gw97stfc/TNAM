@@ -1,4 +1,5 @@
 # This module stores functions to aid in calculations of orthographic projection areas and rotating samples.
+# These calculations are vital for the flux correction.
 module projections
 
 
@@ -80,7 +81,7 @@ end
 
 
 """
-Calculates the area of the 2D bounding box that surrounds the projected sample.
+Calculates the area of the 2D axis-aligned bounding box that surrounds the projected sample.
 
 Parameters
 ----------
@@ -172,9 +173,11 @@ end
 
 # Defining a function to correct the measured data by taking into consideration the neutron flux it received.
 
+
 """
 Corrects the measured data by taking into consideration the neutron flux the sample received considering the sample angle, ψ, of the .nxspe file.
 Accomplishes this by dividing by the area of the sample projected onto the y-z plane.
+This gives a neutron intensity as if all .nxspe files had 'seen' the same neutron flux.
 
 Parameters
 ----------
