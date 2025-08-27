@@ -182,7 +182,7 @@ function abs_corr(
     idx = findall(.~((data .== 0) .| (isnan.(data))))
     # Correcting each signal by dividing by the corresponding attenuation factor.
     for I in idx
-        c_data[I] = c_data[I] / atten[I]
+        c_data[I] = c_data[I] * atten[I]
     end
     return c_data
 end
