@@ -8,7 +8,7 @@ using StaticArrays
 using Distributions
 
 
-# Defining a function to rotate the sample about the z-axis.
+# Defining a function to rotate the sample about the y-axis.
 
 
 """
@@ -29,21 +29,21 @@ function rotate(θ :: Float32, vertices :: Vector{Point{3, Float32}}) :: Vector{
     # Converting the angle to radians.
     θ = deg2rad(θ)
     # Calculating rotation matrix.
-    R_z = Matrix{Float32}([[cos(θ), -sin(θ), 0] [sin(θ), cos(θ), 0] [0, 0, 1]])
+    R_y = Matrix{Float32}([[cos(θ), 0, sin(θ)] [0, 1, 0] [-sin(θ), 0, cos(θ)]])
     # Applying rotation matrix to each vertex.
     for i in 1:length(vertices)
-        r_vertices[i] = R_z * vertices[i]
+        r_vertices[i] = R_y * vertices[i]
     end
     return r_vertices
 end
 
 
-# Defining a function that calculates the vertices and triangles projected onto the y-z plane.
+# Defining a function that calculates the vertices and triangles projected onto the x-y plane.
 
 
 """
-Calculates the coordinates of the vertices and triangles projected onto the y-z plane (plane perpendicular to the neutron beam).
-Accomplished by simply reading off the y and z coordinates.
+Calculates the coordinates of the vertices and triangles projected onto the x-y plane (plane perpendicular to the neutron beam).
+Accomplished by simply reading off the x and y coordinates.
 
 Parameters
 ----------
@@ -63,10 +63,10 @@ function project(
     ) :: Tuple{Vector{SVector{2, Float32}}, Vector{Vector{SVector{2, Float32}}}}
     # Calculating the number of vertices.
     n_vert = length(vertices)
-    # Projecting the sample onto the y-z plane.
+    # Projecting the sample onto the x-y plane.
     p_vertices = Vector{SVector{2, Float32}}(undef, n_vert)
     for i in 1:n_vert
-        p_vertices[i] = [vertices[i][2], vertices[i][3]]
+        p_vertices[i] = [vertices[i][1], vertices[i][2]]
     end
     # Grouping these projected vertices by the triangles they create.
     p_triangles = Vector{Vector{SVector{2, Float32}}}(undef, n_faces)
@@ -107,7 +107,7 @@ end
 
 
 """
-Calculates the area of the sample projected onto the y-z plane. This is the cross-sectional area visible to the neutron beam.
+Calculates the area of the sample projected onto the x-y plane. This is the cross-sectional area visible to the neutron beam.
 Adopts a Monte Carlo approach to achieve this.
 Ratio of random coordinates in the sample projection to total is equal to the ratio of sample projection area to total bounding area.
 
@@ -135,8 +135,8 @@ function area_calc(
     # Tallying the number of random coordinates that lie within the sample.
     n_in = 0
     # Pre-calculating the uniform distribution describing the bounding rectangle.
-    y_range = Uniform(min_coord[1], max_coord[1])
-    z_range = Uniform(min_coord[2], max_coord[2])
+    x_range = Uniform(min_coord[1], max_coord[1])
+    y_range = Uniform(min_coord[2], max_coord[2])
     # Pre-allocating vectors.
     p_e2 = Vector{Float32}(undef, 2)
     p_e3 = Vector{Float32}(undef, 2)
@@ -144,10 +144,10 @@ function area_calc(
     test = Vector{Float32}(undef, 2)
     for i in 1:n_tot
         # Generating a random 2D coordinate within the pre-defined ranges.
+        x = rand(x_range)
         y = rand(y_range)
-        z = rand(z_range)
-        test[1] = y
-        test[2] = z
+        test[1] = x
+        test[2] = y
         for j in 1:n_faces
             triangle = p_triangles[j]
             # In barycentric coordinates, any point in a triangle can be expressed as (1-u-v) * V1 + u * V2 + v * V3 where u, v ≥ 0 and u + v ≤ 1.
@@ -176,7 +176,7 @@ end
 
 """
 Corrects the measured data by taking into consideration the neutron flux the sample received considering the sample angle, ψ, of the .nxspe file.
-Accomplishes this by dividing by the area of the sample projected onto the y-z plane.
+Accomplishes this by dividing by the area of the sample projected onto the x-y plane.
 This gives a neutron intensity as if all .nxspe files had 'seen' the same neutron flux.
 
 Parameters

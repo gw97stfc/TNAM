@@ -242,7 +242,7 @@ function sample!(
     p = Vector{SVector{3, Float32}}(undef, n_faces)
     det = Vector{Float32}(undef, n_faces)
     # Sending a dummy neutron along the x direction, starting at this test coordinate.
-    d = SVector{3, Float32}(-1, 0, 0)
+    d = SVector{3, Float32}(0, 0, -1)
     # Calculating p and det required for the MT algorithm.
     pdet_calc!(d, e2s, e3s, p, det, n_faces)
     # Tallying the number of accepted coordinates.

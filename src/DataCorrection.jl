@@ -109,7 +109,7 @@ function correct_af(
     @threads for i in 1:n_files
         # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
         ki = zeros(3)
-        ki[1] = nxspe.magk_calc(en_i[i])
+        ki[3] = nxspe.magk_calc(en_i[i])
         # Converting ki to a static array.
         ki = SVector{3, Float32}(ki)
         # Extracting the number of energy bins and number of detectors.
@@ -248,7 +248,7 @@ function correct_a(
     @threads for i in 1:n_files
         # Finding the initial wavevector, in Angstrom^-1, from the initial energy.
         ki = zeros(3)
-        ki[1] = nxspe.magk_calc(en_i[i])
+        ki[3] = nxspe.magk_calc(en_i[i])
         # Converting ki to a static array.
         ki = SVector{3, Float32}(ki)
         # Extracting the number of energy bins and number of detectors.
