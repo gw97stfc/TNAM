@@ -89,8 +89,8 @@ p_vertices (n_vert - vector of 2-vectors with float elements): 2D projected vert
 
 Returns
 -------
-min_coord (2-vector with float elements): Minimum value of y and z coordinate, in units of .stl file.
-max_coord (2-vector with float elements): Maximum value of y and z coordinate, in units of .stl file.
+min_coord (2-vector with float elements): Minimum value of x and y coordinate, in units of .stl file.
+max_coord (2-vector with float elements): Maximum value of x and y coordinate, in units of .stl file.
 rec_area (float): Area of bounding box, in unit of the .stl file squared.
 """
 function aabb_2d(p_vertices :: Vector{SVector{2, Float32}}) :: Tuple{Vector{Float32}, Vector{Float32}, Float32}
@@ -103,7 +103,7 @@ function aabb_2d(p_vertices :: Vector{SVector{2, Float32}}) :: Tuple{Vector{Floa
 end
 
 
-# Defining the function to calculate the area, in units of the .stl file squared, of the sample projected into the y-z plane.
+# Defining the function to calculate the area, in units of the .stl file squared, of the sample projected into the x-y plane.
 
 
 """
@@ -113,8 +113,8 @@ Ratio of random coordinates in the sample projection to total is equal to the ra
 
 Parameters
 ----------
-min_coord (2-vector with float elements): Minimum value of y and z coordinate, in units of .stl file.
-max_coord (2-vector with float elements): Maximum value of y and z coordinate, in units of .stl file.
+min_coord (2-vector with float elements): Minimum value of x and y coordinate, in units of .stl file.
+max_coord (2-vector with float elements): Maximum value of x and y coordinate, in units of .stl file.
 p_triangles (n_faces - vector of 3-vectors of 2-vectors with float elements): Coordinates of projected triangles, in units of .stl file.
 n_tot (integer): Total number of random coordinates to be generated.
 n_faces (integer): Total number of faces.
@@ -198,7 +198,7 @@ function flux_corr(
     n_faces :: Integer, 
     n_tot :: Integer
     ) :: Matrix{Float32}
-    # Projecting the sample onto the y-z plane (the plane perpendicular to the neutron beam).
+    # Projecting the sample onto the x-y plane (the plane perpendicular to the neutron beam).
     # Grouping these projected vertices by the triangles they create.
     p_vertices, p_triangles = project(r_vertices, indices, n_faces)
     # Finding the maximum and minimum value of each projected coordinate.
