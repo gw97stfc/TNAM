@@ -198,7 +198,6 @@ output_file_dir (string): Path to folder where output .nxspe files will be store
 sample (string): Path to the .stl file (with units of mm).
 complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
 n_elements (integer): Number of elements in the sample.
-μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
 en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
 n_abs (integer): (Optional) Number of MC sample points used in the absorption correction. Default of 1000.
 seed (integer): (Optional) Random seed.
