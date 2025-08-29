@@ -14,7 +14,7 @@
 \maketitle
 
 \section{Introduction}
-This Julia program is built to correct neutron scattering data by taking into consideration neutron absorption and the varying flux incident on the sample at different angles. Both corrections are accomplished with a Monte Carlo approach. The absorption correction calculates the attenuation factor for each detector and each energy and divides the data by the corresponding attenuation factor. The flux correction calculates the area of the sample's projection onto the y-z plane (perpendicular to the incoming neutron beam) and divides all the data from a single .nxspe file by the corresponding area. As a result of this, the absorption correction is significantly more computationally-intensive. Spacial information about the sample, key to both corrections, is provided by exploiting neutron tomography to image the crystal(s).
+This Julia program is built to correct neutron scattering data by taking into consideration neutron absorption and the varying flux incident on the sample at different angles. Both corrections are accomplished with a Monte Carlo approach. The absorption correction calculates the attenuation factor for each detector and each energy and divides the data by the corresponding attenuation factor. The flux correction calculates the area of the sample's projection onto the x-y plane (perpendicular to the incoming neutron beam) and divides all the data from a single .nxspe file by the corresponding area. As a result of this, the absorption correction is significantly more computationally-intensive. Spacial information about the sample, key to both corrections, is provided by exploiting neutron tomography to image the crystal(s).
 \section{Contents of TNAM Repository}
 Non-trivial contents of the TNAM repository include:
 \begin{itemize}
@@ -36,7 +36,7 @@ Non-trivial contents of the TNAM repository include:
             \item \textcolor{blue}{\textbf{AttenTest1.ipynb}} : Julia notebook containing the calculation of attenuation factors using 1 MC sampling point and for 1 .nxspe file.
             \item \textcolor{blue}{\textbf{GeneralAttenTest2.ipynb}} : Julia notebook containing the calculation of attenuation factors using multiple MC sampling points and for 1 .nxspe file. Works for general sample morphology.
             \item \textcolor{blue}{\textbf{MC\_Sampling.ipynb}} : Julia notebook containing the generation of coordinates inside the sample.
-            \item \textcolor{blue}{\textbf{OrthographicProjections.ipynb}} : Julia notebook containing the calculation of the area of the sample's projection on the y-z plane.
+            \item \textcolor{blue}{\textbf{OrthographicProjections.ipynb}} : Julia notebook containing the calculation of the area of the sample's projection on the x-y plane.
             \item \textcolor{blue}{\textbf{SingleAttenTest.ipynb}} : Julia notebook containing the calculation of attenuation factors using multiple MC sampling points and for 1 .nxspe file. Works for single, convex sample morphology.
         \end{itemize}
     \end{itemize}
@@ -60,11 +60,11 @@ Finally, the user must enter the Julia REPL (inside the TNAM directory) and ente
 \noindent
 Upon evaluating the file in the Julia REPL, via: \verb!include("src/DataCorrection.jl")!, the functions that correct for flux (\verb!correct_f()!), correct for absorption (\verb!correct_a()!) and correct for both (\verb!correct_af()!) are accessible.
 \section{User Inputs}
-The function that corrects each .nxspe file for neutron flux, \texttt{\textcolor{blue}{correct\_f(nxspes,\ input\_file\_dir,\ file\_start,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample;\ n\_flux,\ seed)}}, has the following inputs. 
+The function that corrects each .nxspe file for neutron flux, \texttt{\textcolor{blue}{correct\_f(input\_file\_dir,\ file\_start,\ nxspes,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample;\ n\_flux,\ seed)}}, has the following inputs. 
 \begin{itemize}
-    \item \textbf{nxspes} : Vector with integer elements containing the variable part of the names of each .nxspe file. For instance, for LET .nxspe files of the form \verb!LET104215_3.7meV_1to1.nxspe!, \verb!104215! is the variable aspect.
     \item \textbf{input\_file\_dir} : String describing the path to the folder containing the input .nxspe files.
     \item \textbf{file\_start} : String describing the template of the start of each .nxspe file. For this LET example, this would be \verb!"LET"!.
+    \item \textbf{nxspes} : Vector with integer elements containing the variable part of the names of each .nxspe file. For instance, for LET .nxspe files of the form \verb!LET104215_3.7meV_1to1.nxspe!, \verb!104215! is the variable aspect.
     \item \textbf{file\_end} : String describing the template of the end of each .nxspe file. For the LET example, this would be \verb!"_3.7meV_1to1.nxspe"!.
     \item \textbf{output\_file\_dir} : String describing the path to the folder which will contain the output .nxspe files.
     \item \textbf{$\psi$s} : Vector with real elements containing the sample rotation angle, $\psi$, corresponding to each .nxspe file, in degrees.
@@ -72,15 +72,15 @@ The function that corrects each .nxspe file for neutron flux, \texttt{\textcolor
     \item \textbf{n\_flux} : Optional integer equal to the number of MC sample point used in the flux correction. Default value of 100,000.
     \item \textbf{seed} : Optional integer random seed.\\
 \end{itemize}
-The function that corrects the data for absorption, \texttt{\textcolor{blue}{correct\_a(nxspes,\ input\_file\_dir,\ file\_start,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample,\ complex,\ $\mu$\_ref;\ en\_ref,\ n\_abs,\ seed)}}, has the following extra inputs.
+The function that corrects the data for absorption, \texttt{\textcolor{blue}{correct\_a(input\_file\_dir,\ file\_start,\ nxspes,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample,\ complex,\ n\_elements;\ en\_ref,\ n\_abs,\ seed)}}, has the following extra inputs.
 \begin{itemize}
     \item \textbf{complex} : Bool describing the functions that the program will use. \verb!true! will perform the correction for a general sample morphology. The program for the general crystal(s) calculates every intersection point, allowing for neutron paths to exit and re-enter the sample. \verb!false! will perform the correction for a single, convex sample morphology. The program for the single crystal assumes only one intersection point and is, therefore, considerably faster.
-    \item \textbf{$\mu$\_ref} : Real number equal to the attenuation coefficient at the reference energy, in $cm^{-1}$.
+    \item \textbf{n\_elements} : Number of elements in the sample. This allows the program to then ask for the user to input the number densities, absorption cross sections at 25.3 meV and scattering cross sections of each element. These values are used to find the total attenuation coefficient, $\mu$.
     \item \textbf{en\_ref} : Optional real number equal to the reference energy, in meV. Default of 25.3 meV.
     \item \textbf{n\_abs} : Optional integer equal to the number of MC sample point used in the absorption correction. Default value of 1,000.\\
 \end{itemize}
 The function that corrects the data for both neutron flux and absorption,
-\texttt{\textcolor{blue}{correct\_af(nxspes,\ input\_file\_dir,\ file\_start,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample,\ complex,\ $\mu$\_ref;\ en\_ref,\ n\_abs,\ n\_flux,\ seed)}}, uses all the arguments listed above.
+\texttt{\textcolor{blue}{correct\_af(input\_file\_dir,\ file\_start,\ nxspes,\ file\_end,\ output\_file\_dir,\ $\psi$s,\ sample,\ complex,\ n\_elements;\ en\_ref,\ n\_abs,\ n\_flux,\ seed)}}, uses all the arguments listed above.
 \section{Program Outputs}
 The program outputs .nxspe files into a folder chosen by the user. These files are copies of the original .nxspe files except with the corrected data and rotation angle, $\psi$, added in place of the previous data. These new files have the same names but with \verb!aC_!, \verb!fC_! or \verb!afC_! in front depending on whether they have been absorption-, flux-, or absorption and flux-corrected.
 \section{Error Outputs}
