@@ -31,15 +31,15 @@ Outputs corrected .nxspe files into a chosen directory.
 
 Parameters
 ----------
-nxspes (vector with integer elements): Variable part of each .nxspe file.
 input_file_dir (string): Path to folder containing the input .nxspe files.
 file_start (string): Constant part at the start of the .nxspe file.
+nxspes (vector with integer elements): Variable part of each .nxspe file.
 file_end (string): Constant part at the end of the .nxspe file.
 output_file_dir (string): Path to folder where output .nxspe files will be stored.
 ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file (with units of mm).
 complex (bool): Program that this function will use. true = general crystal morphology. false = single, convex crystal.
-μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
+n_elements (integer): Number of elements in the sample.
 en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
 n_abs (integer): (Optional) Number of MC sample points used in the absorption correction. Default of 1000.
 n_flux (integer): (Optional) Number of MC sample points used in the flux correction. Default of 100000.
@@ -47,15 +47,15 @@ seed (integer): (Optional) Random seed.
 
 """
 function correct_af(
-    nxspes :: Vector{Int},
     input_file_dir :: String,
     file_start :: String,
+    nxspes :: Vector{Int},
     file_end :: String,
     output_file_dir :: String, 
     ψs :: AbstractVector{<:Real}, 
     sample :: String, 
     complex :: Bool, 
-    μ_ref :: Real; 
+    n_elements :: Integer; 
     en_ref :: Real=25.3f0, 
     n_abs :: Integer=1000, 
     n_flux :: Integer=100000,
@@ -63,9 +63,21 @@ function correct_af(
     )
     # Ensuring that the number of .nxspe files is consistent.
     @assert length(nxspes) == length(ψs) "The vectors containing the angles and the variable part of the file name should be the same length."
-    # Converting the inputs to Float32.
+    # Storing the information about each element.
+    n = Vector{Float32}(undef, n_elements)
+    axs_ref = Vector{Float32}(undef, n_elements)
+    sxs = Vector{Float32}(undef, n_elements)
+    # Asking the user to input the number density, reference absorption cross section and scattering cross sections for each element in the sample.
+    for i in 1:n_elements
+        println("Please enter the number density of element $i, in cm^-3.")
+        n[i] = parse(Float32, readline())
+        println("Please enter the absorption cross section of element $i, in cm^2, at your provided reference energy (default of 25.3meV).")
+        axs_ref[i] = parse(Float32, readline())
+        println("Please enter the scattering cross section of element $i, in cm^2, at your provided reference energy (default of 25.3meV).")
+        sxs[i] = parse(Float32, readline())
+    end
+    # Converting the function inputs to Float32.
     ψs = Float32.(ψs)
-    μ_ref = Float32(μ_ref)
     en_ref = Float32(en_ref)
     # Setting the random number seed.
     if isnothing(seed)
@@ -133,9 +145,14 @@ function correct_af(
         # Calculating the MC coordinates and initial path lengths.
         sampling.sample!(ranges, e2s, e3s, v1s, len_i, mc_coords, complex, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
-        μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
+        μi = crystal.μ_calc(n, axs_ref, sxs, en_ref, en_i[i], n_elements)
+        # Calculating the post-scattering attenuation coefficients.
+        μf = zeros(Float32, n_bins)
+        for j in 1:n_bins
+            μf[j] = crystal.μ_calc(n, axs_ref, sxs, en_ref, ef_bins[j], n_elements)
+        end
         # Calculating this grid of attenuation factors.
-        atten_grid, acc_rate = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        atten_grid, acc_rate = crystal.a_grid_calc(data[i], kx, ky, kz, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μi, μf)
         av_acc_rate += acc_rate
         # Correcting the data for absorption.
         ca_data = nxspe.abs_corr(data[i], atten_grid)
@@ -172,14 +189,15 @@ Outputs corrected nxspe files into a chosen directory.
 
 Parameters
 ----------
-nxspes (vector with integer elements): Variable part of each .nxspe file.
 input_file_dir (string): Path to folder containing input .nxspe files.
 file_start (string): Constant part at the start of the .nxspe file.
+nxspes (vector with integer elements): Variable part of each .nxspe file.
 file_end (string): Constant part at the end of the .nxspe file.
 output_file_dir (string): Path to folder where output .nxspe files will be stored.
 ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
 sample (string): Path to the .stl file (with units of mm).
 complex (bool): Program that this function will use. true = general crystal morphology. false = single crystal.
+n_elements (integer): Number of elements in the sample.
 μ_ref (float or integer): Attenuation coefficent at the reference energy, in cm^-1.
 en_ref (float or integer): (Optional) reference energy, in meV. Default of 25.3 meV.
 n_abs (integer): (Optional) Number of MC sample points used in the absorption correction. Default of 1000.
@@ -187,24 +205,36 @@ seed (integer): (Optional) Random seed.
 
 """
 function correct_a(
-    nxspes :: Vector{Int},
     input_file_dir :: String, 
     file_start :: String, 
+    nxspes :: Vector{Int}, 
     file_end :: String, 
     output_file_dir :: String,  
     ψs :: AbstractVector{<:Real}, 
     sample :: String, 
     complex :: Bool, 
-    μ_ref :: Real; 
+    n_elements :: Integer; 
     en_ref :: Real=25.3f0,
     n_abs :: Integer=1000,
     seed :: Union{Int, Nothing}=nothing
     )
     # Ensuring that the number of .nxspe files is consistent.
     @assert length(nxspes) == length(ψs) "The vectors containing the angles and the variable part of the file name should be the same length."
+    # Storing the information about each element.
+    n = Vector{Float32}(undef, n_elements)
+    axs_ref = Vector{Float32}(undef, n_elements)
+    sxs = Vector{Float32}(undef, n_elements)
+    # Asking the user to input the number density, reference absorption cross section and scattering cross sections for each element in the sample.
+    for i in 1:n_elements
+        println("Please enter the number density of element $i, in cm^-3.")
+        n[i] = parse(Float32, readline())
+        println("Please enter the absorption cross section of element $i, in cm^2, at your provided reference energy (default of 25.3meV).")
+        axs_ref[i] = parse(Float32, readline())
+        println("Please enter the scattering cross section of element $i, in cm^2, at your provided reference energy (default of 25.3meV).")
+        sxs[i] = parse(Float32, readline())
+    end
     # Converting the inputs to Float32.
     ψs = Float32.(ψs)
-    μ_ref = Float32(μ_ref)
     en_ref = Float32(en_ref)
     # Setting the random number seed.
     if isnothing(seed)
@@ -272,9 +302,14 @@ function correct_a(
         # Calculating the MC coordinates and initial path lengths.
         sampling.sample!(ranges, e2s, e3s, v1s, len_i, mc_coords, complex, n_faces, n_abs)
         # Calculating the pre-scattering attenuation coefficent.
-        μi = crystal.μ_calc(μ_ref, en_ref, en_i[i])
+        μi = crystal.μ_calc(n, axs_ref, sxs, en_ref, en_i[i], n_elements)
+        # Calculating the post-scattering attenuation coefficients.
+        μf = zeros(Float32, n_bins)
+        for j in 1:n_bins
+            μf[j] = crystal.μ_calc(n, axs_ref, sxs, en_ref, ef_bins[j], n_elements)
+        end
         # Calculating this grid of attenuation factors.
-        atten_grid, acc_rate = crystal.a_grid_calc(data[i], kx, ky, kz, ef_bins, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μ_ref, en_ref, μi)
+        atten_grid, acc_rate = crystal.a_grid_calc(data[i], kx, ky, kz, v1s, e2s, e3s, mc_coords, len_i, n_bins, n_detectors, n_faces, n_abs, μi, μf)
         av_acc_rate += acc_rate
         # Correcting the data for absorption.
         ca_data = nxspe.abs_corr(data[i], atten_grid)
@@ -306,9 +341,9 @@ Outputs corrected nxspe files into a chosen directory.
 
 Parameters
 ----------
-nxspes (vector with integer elements): Variable part of each .nxspe file.
 input_file_dir (string): Path to folder containing input .nxspe files.
 file_start (string): Constant part at the start of the .nxspe file.
+nxspes (vector with integer elements): Variable part of each .nxspe file.
 file_end (string): Constant part at the end of the .nxspe file.
 output_file_dir (string): Path to folder where output .nxspe files will be stored.
 ψs (vector with float or integer elements): Sample rotation angles corresponding to each file, in degrees.
@@ -318,9 +353,9 @@ seed (integer): (Optional) Random seed.
 
 """
 function correct_f(
-    nxspes :: Vector{Int}, 
     input_file_dir :: String, 
     file_start :: String, 
+    nxspes :: Vector{Int},
     file_end :: String, 
     output_file_dir :: String, 
     ψs :: AbstractVector{<:Real}, 

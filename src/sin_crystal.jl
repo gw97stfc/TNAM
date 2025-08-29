@@ -15,16 +15,33 @@ Determines the attenuation coefficent (μ) for the inputted energy based on the 
 
 Parameters
 ----------
-μ_ref (float): Attenuation coefficent at the reference energy, in cm^-1.
+n (n_elements - vector with float elements): Number density of each element, in cm^-3.
+axs_ref (n_elements - vector with float elements): Absorption cross section of each element at the reference energy, in cm^2.
+sxs (n_elements - vector with float elements): Scattering cross section of each element, in cm^2.
 en_ref (float): Reference energy, in meV.
 en (float): Energy in meV.
+n_elements (integer): Number of elements in the sample.
 
 Returns
 -------
 μ (float): Attenuation coefficient in cm^-1.
 """
-function μ_calc(μ_ref :: Float32, en_ref :: Float32, en :: Float32) :: Float32
-    return μ_ref * sqrt(en_ref / en)
+function μ_calc(
+    n :: Vector{Float32}, 
+    axs_ref :: Vector{Float32}, 
+    sxs :: Vector{Float32}, 
+    en_ref :: Float32, 
+    en :: Float32, 
+    n_elements :: Integer
+    ) :: Float32
+    # Calculating the square root of the ratio of the reference to the input energy.
+    en_factor = sqrt(en_ref / en)
+    # Setting the attenuation coefficient as the sum of the attenuation coefficent due to each element.
+    μ = 0
+    for i in 1:n_elements
+        μ += n[i] * ((axs_ref[i] * en_factor) + sxs[i])
+    end
+    return μ
 end
 
 
@@ -143,7 +160,6 @@ Calculates the attenuation factor given a set initial and final energy and wavev
 Parameters
 ----------
 df (3-vector with float elements): Normalised post-scattering neutron wavevector, in Angstrom^-1.
-en_f (float): Post-scattering energy of neutron, in meV.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
@@ -153,9 +169,8 @@ p_f (n_faces-vector of 3-vectors with float elements): Pre-allocated vector.
 det_f (n_faces-vector with float elements): Pre-allocated vector.
 n_faces (integer): Number of faces.
 n_mc (integer): Number of MC sample points.
-μ_ref (float): Attenuation coefficent at reference energy, in cm^-1.
-en_ref (float): Reference energy, in meV.
 μi (float): Pre-scattering attenuation coefficent, in cm^-1.
+μf (float): Post-scattering attenuation coefficient, in cm^-1.
 
 Returns
 -------
@@ -164,7 +179,6 @@ acc_pts (integer): Number of MC sample points used in the calculation.
 """
 function atten_calc(
     df :: SVector{3, Float32}, 
-    en_f :: Float32, 
     v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
@@ -173,13 +187,10 @@ function atten_calc(
     p_f :: Vector{SVector{3, Float32}},
     det_f :: Vector{Float32}, 
     n_faces :: Integer, 
-    n_mc :: Integer, 
-    μ_ref :: Float32, 
-    en_ref :: Float32, 
-    μi :: Float32
+    n_mc :: Integer,  
+    μi :: Float32, 
+    μf :: Float32
     ) :: Tuple{Float32, Integer}
-    # Calculating the absorption cross section after the neutron scatters.
-    μf = μ_calc(μ_ref, en_ref, en_f)
     # Setting up the Moller-Trumbore algorithm for ray-triangle intersections.
     pdet_calc!(df, e2s, e3s, p_f, det_f, n_faces)
     # Tallying the number of accepted MC sample points where a path length could be calculated.
@@ -213,8 +224,6 @@ data (n_bins x n_detectors matrix with float elements): Neutron signal measured 
 kx (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in x direction, in Angstrom^-1.
 ky (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in y direction, in Angstrom^-1.
 kz (n_bins x n_detectors matrix with float elements): Post-scattering neutron wavevector component in z direction, in Angstrom^-1.
-en_i (float): Pre-scattering neutron energy, in meV.
-ef_bins (n_bins-vector with float elements): Post-scattering neutron energy of each bin, in meV.
 v1s (n_faces-vector of 3-vectors with float elements): First vertex of each face, V1.
 e2s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V2 - V1.
 e3s (n_faces-vector of 3-vectors with float elements): Vectors parallel to each face, equal to V3 - V1.
@@ -224,9 +233,8 @@ n_bins (integer): Number of bins.
 n_detectors (integer): Number of detectors.
 n_faces (integer): Number of faces.
 n_mc (integer): Number of MC sample points.
-μ_ref (float): Attenuation coefficent at reference energy, in cm^-1.
-en_ref (float): Reference energy, in meV.
 μi (float): Pre-scattering attenuation coefficent, in cm^-1.
+μf (n_bins - vector with float elements): Post-scattering attenuation coefficient for each energy bin, in cm^-1.
 
 Returns
 -------
@@ -238,7 +246,6 @@ function a_grid_calc(
     kx :: AbstractMatrix{Float32}, 
     ky :: AbstractMatrix{Float32}, 
     kz :: AbstractMatrix{Float32}, 
-    ef_bins :: Vector{Float32}, 
     v1s :: Vector{SVector{3, Float32}}, 
     e2s :: Vector{SVector{3, Float32}}, 
     e3s :: Vector{SVector{3, Float32}}, 
@@ -248,9 +255,8 @@ function a_grid_calc(
     n_detectors :: Integer, 
     n_faces :: Integer, 
     n_mc :: Integer, 
-    μ_ref :: Float32, 
-    en_ref :: Float32, 
-    μi :: Float32
+    μi :: Float32, 
+    μf :: Vector{Float32}
     ) :: Tuple{Matrix{Float32}, Float32}
     atten_grid = zeros(Float32, n_bins, n_detectors)
     # Determining the locations in which the signal is either NaN or 0 as we don't want to calculate atten there.
@@ -265,7 +271,7 @@ function a_grid_calc(
         kf = SVector{3, Float32}(kx[I], ky[I], kz[I])
         # Normalising the post-scattering direction vector.
         df = kf / norm(kf)
-        atten_grid[I], acc_pts = atten_calc(df, ef_bins[I[1]], v1s, e2s, e3s, coords, len_i, p_f, det_f, n_faces, n_mc, μ_ref, en_ref, μi)
+        atten_grid[I], acc_pts = atten_calc(df, v1s, e2s, e3s, coords, len_i, p_f, det_f, n_faces, n_mc, μi, μf[I[1]])
         acc_rate += acc_pts
     end
     # Calculating this acceptance rate.
